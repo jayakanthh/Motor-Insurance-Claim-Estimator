@@ -58,9 +58,6 @@ export default function Home() {
               Get Estimation
               <ArrowRightIcon className="h-5 w-5" />
             </Link>
-            <button className="flex items-center justify-center gap-2 bg-white text-gray-700 px-8 py-4 rounded-xl font-bold text-lg shadow-sm border border-gray-200 hover:bg-gray-50 transition-all">
-              Watch Demo
-            </button>
           </div>
 
           <div className="mt-10 flex items-center gap-6 text-sm text-gray-500 font-medium">
@@ -110,7 +107,7 @@ export default function Home() {
                 <div className="pt-4 flex justify-between items-center">
                    <div>
                       <div className="text-xs text-gray-500 uppercase font-bold">Estimated Cost</div>
-                      <div className="text-2xl font-bold text-gray-900">$1,250.00</div>
+                      <div className="text-2xl font-bold text-gray-900">₹45,000.00</div>
                    </div>
                    <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
                       Pre-Approved

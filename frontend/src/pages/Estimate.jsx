@@ -35,10 +35,18 @@ export default function Estimate() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [config, setConfig] = useState({
-    provider: 'mock',
+    provider: 'ollama',
     apiKey: '',
-    laborRate: 75
+    laborRate: 500
   });
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
 
   const onDrop = useCallback((acceptedFiles, type) => {
     const file = acceptedFiles[0];
@@ -224,12 +232,12 @@ export default function Estimate() {
                 )}
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Labor Rate ($/hr)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Labor Rate (₹/hr)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                    <span className="absolute left-3 top-2.5 text-gray-500">₹</span>
                     <input 
                       type="number"
-                      className="w-full rounded-lg border-gray-300 border p-2.5 pl-7 focus:ring-2 focus:ring-blue-500"
+                      className="w-full rounded-lg border-gray-300 border p-2.5 pl-8 focus:ring-2 focus:ring-blue-500"
                       value={config.laborRate}
                       onChange={(e) => setConfig({...config, laborRate: parseFloat(e.target.value)})}
                     />
@@ -373,24 +381,24 @@ export default function Estimate() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Parts Total</span>
-                        <span className="font-semibold text-gray-900">${result.cost_estimate.summary.total_parts_cost.toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.total_parts_cost)}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">
                           Labor ({result.cost_estimate.summary.total_labor_hours} hrs)
                         </span>
-                        <span className="font-semibold text-gray-900">${result.cost_estimate.summary.total_labor_cost.toFixed(2)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.total_labor_cost)}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="text-gray-600">Tax (10%)</span>
-                        <span className="font-semibold text-gray-900">${result.cost_estimate.summary.tax.toFixed(2)}</span>
+                        <span className="text-gray-600">Tax (18% GST)</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.tax)}</span>
                       </div>
                       
                       <div className="pt-4 mt-4 border-t border-gray-100">
                         <div className="flex justify-between items-end">
                           <span className="text-gray-500 font-medium">Grand Total</span>
                           <span className="text-3xl font-bold text-blue-600">
-                            ${result.cost_estimate.summary.total_cost.toFixed(2)}
+                            {formatCurrency(result.cost_estimate.summary.total_cost)}
                           </span>
                         </div>
                       </div>
@@ -429,9 +437,9 @@ export default function Estimate() {
                                 {item.severity}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-right text-gray-600">${item.part_cost.toFixed(2)}</td>
-                            <td className="px-6 py-4 text-right text-gray-600">${item.labor_cost.toFixed(2)}</td>
-                            <td className="px-6 py-4 text-right font-bold text-gray-900">${item.total.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-right text-gray-600">{formatCurrency(item.part_cost)}</td>
+                            <td className="px-6 py-4 text-right text-gray-600">{formatCurrency(item.labor_cost)}</td>
+                            <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total)}</td>
                           </tr>
                         ))}
                       </tbody>
