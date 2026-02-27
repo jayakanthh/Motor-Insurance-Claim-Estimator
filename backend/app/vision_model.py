@@ -83,9 +83,9 @@ class VisionAgent:
         if img is None:
             return image_bytes
 
-        # Resize if too large (max 1024px) to save tokens and bandwidth
+        # Resize if too large (max 2048px) to save tokens and bandwidth
         height, width = img.shape[:2]
-        max_dim = 1024
+        max_dim = 2048
         if max(height, width) > max_dim:
             scale = max_dim / max(height, width)
             new_width = int(width * scale)
@@ -117,6 +117,8 @@ class VisionAgent:
         # Mock damage scenarios
         scenarios = [
             {
+                "car_info": "Toyota Camry 2020",
+                "registration_number": "KA-01-AB-1234",
                 "damages": [
                     {"part": "bumper_front", "severity": "moderate", "description": "Dent and scratch on the left side"},
                     {"part": "headlight_left", "severity": "severe", "description": "Cracked lens"}
@@ -124,6 +126,8 @@ class VisionAgent:
                 "confidence": 0.95
             },
             {
+                "car_info": "Honda Civic 2019",
+                "registration_number": "MH-02-XY-9876",
                 "damages": [
                     {"part": "door_front_right", "severity": "minor", "description": "Deep scratch"},
                     {"part": "side_mirror_right", "severity": "moderate", "description": "Broken housing"}
@@ -131,11 +135,19 @@ class VisionAgent:
                 "confidence": 0.88
             },
             {
+                "car_info": "Hyundai Creta 2021",
+                "registration_number": "DL-10-CD-5678",
                 "damages": [
                     {"part": "bumper_rear", "severity": "severe", "description": "Major impact damage, detached"},
                     {"part": "taillight_left", "severity": "moderate", "description": "Cracked"}
                 ],
                 "confidence": 0.92
+            },
+            {
+                "car_info": "Maruti Suzuki Swift 2023",
+                "registration_number": "TS-09-EF-4321",
+                "damages": [],
+                "confidence": 0.98
             }
         ]
         
@@ -163,8 +175,19 @@ class VisionAgent:
                     {
                         "role": "system",
                         "content": """You are an expert car insurance adjuster. Analyze the provided images and identify damaged parts.
+                        1. Identify the car Make, Model and Year if possible.
+                        2. Identify the Registration Number (License Plate) if visible.
+                        3. Identify all damaged parts.
+                        
+                        If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
+
                         Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
-                        Return ONLY valid JSON. Format: {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}"""
+                        Return ONLY valid JSON. Format: 
+                        {
+                            "car_info": "Make Model Year (or Unknown)",
+                            "registration_number": "License Plate (or Unknown)",
+                            "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
+                        }"""
                     },
                     {
                         "role": "user",
@@ -189,13 +212,22 @@ class VisionAgent:
             # Gemini accepts list of [prompt, image1, image2, ...]
             
             prompt = """
-            You are an expert car insurance adjuster. Analyze these car damage photos and identify all damaged parts across all images.
+            You are an expert car insurance adjuster. Analyze these car damage photos.
+            1. Identify the car Make, Model and Year if possible (e.g. "Toyota Camry 2022"). If unknown, say "Unknown Car".
+            2. Identify the Registration Number (License Plate) if visible.
+            3. Identify all damaged parts across all images.
+            
+            If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
             
             Supported parts keys: 
             bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
             
             Return ONLY valid JSON. Format: 
-            {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}
+            {
+                "car_info": "Make Model Year (or Unknown)",
+                "registration_number": "License Plate (or Unknown)",
+                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
+            }
             """
             
             content = [prompt]
@@ -237,16 +269,26 @@ class VisionAgent:
             # We will use the first image for now as LLaVA context window is limited
             
             prompt = """
-            You are an expert car insurance adjuster. Analyze this car damage photo.
-            1. Identify the car Make and Model if possible (e.g. "Toyota Camry", "Honda Civic"). If unknown, say "Unknown Car".
-            2. Identify all damaged parts.
+            Analyze these car damage images to extract vehicle details and damage information for cost estimation.
+            
+            1. IDENTIFY VEHICLE:
+               - Make, Model, Year (e.g., "Maruti Swift 2022")
+               - Registration Number / License Plate (Check all images carefully)
+            
+            2. DETECT DAMAGES:
+               - List EVERY damaged part.
+               - Assess severity (minor, moderate, severe).
+               - Provide a detailed description.
+            
+            If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
             
             Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
             
             Return ONLY valid JSON. Format: 
             {
                 "car_info": "Make Model Year (or Unknown)",
-                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
+                "registration_number": "License Plate (or Unknown)",
+                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "detailed description"}]
             }
             """
             
@@ -254,12 +296,12 @@ class VisionAgent:
             # Ollama Python library handles bytes directly for 'images'
             
             response = self.client.chat(
-                model='llava:7b',
+                model='minicpm-v',
                 messages=[
                   {
                     'role': 'user',
                     'content': prompt,
-                    'images': [image_list[0]] # Analyzing primary image
+                    'images': image_list # Send ALL images
                   }
                 ],
                 format='json'

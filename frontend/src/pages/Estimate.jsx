@@ -11,7 +11,8 @@ import {
   ArrowPathIcon,
   PhotoIcon,
   PlusIcon,
-  XMarkIcon
+  XMarkIcon,
+  TruckIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 
@@ -214,7 +215,7 @@ export default function Estimate() {
                     <option value="mock">Mock (Demo Mode)</option>
                     <option value="openai">OpenAI GPT-4o</option>
                     <option value="gemini">Gemini 1.5 Pro</option>
-                    <option value="ollama">Ollama (Llava 7b)</option>
+                    <option value="ollama">MiniCPM-V (Best for Details)</option>
                   </select>
                 </div>
 
@@ -341,6 +342,28 @@ export default function Estimate() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
+                  {/* Vehicle Details */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 md:col-span-2">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                      <TruckIcon className="h-5 w-5 text-blue-600" />
+                      Vehicle Details
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Make & Model</span>
+                        <span className="font-bold text-gray-900 text-lg">
+                          {result.damage_assessment.car_info}
+                        </span>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Registration Number</span>
+                        <span className="font-bold text-gray-900 text-lg font-mono">
+                          {result.damage_assessment.registration_number || "Not Visible"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Damage List */}
                   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
@@ -418,6 +441,7 @@ export default function Estimate() {
                           <th className="px-6 py-4">Part</th>
                           <th className="px-6 py-4">Severity</th>
                           <th className="px-6 py-4 text-right">Part Cost</th>
+                          <th className="px-6 py-4 text-center">Source</th>
                           <th className="px-6 py-4 text-right">Labor</th>
                           <th className="px-6 py-4 text-right">Total</th>
                         </tr>
@@ -437,7 +461,25 @@ export default function Estimate() {
                                 {item.severity}
                               </span>
                             </td>
-                            <td className="px-6 py-4 text-right text-gray-600">{formatCurrency(item.part_cost)}</td>
+                            <td className="px-6 py-4 text-right text-gray-600 font-medium">
+                              {formatCurrency(item.part_cost)}
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              {item.source_url ? (
+                                <a 
+                                  href={item.source_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-blue-600 hover:text-blue-800 hover:underline text-xs font-semibold bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 inline-flex items-center gap-1"
+                                >
+                                  Web Search ↗
+                                </a>
+                              ) : (
+                                <span className="text-gray-400 text-xs font-medium bg-gray-50 px-2.5 py-1 rounded-full border border-gray-200">
+                                  Database
+                                </span>
+                              )}
+                            </td>
                             <td className="px-6 py-4 text-right text-gray-600">{formatCurrency(item.labor_cost)}</td>
                             <td className="px-6 py-4 text-right font-bold text-gray-900">{formatCurrency(item.total)}</td>
                           </tr>
