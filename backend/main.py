@@ -75,6 +75,8 @@ async def analyze_claim(
                 final_api_key = os.getenv("OPENAI_API_KEY")
             elif provider == "gemini":
                 final_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            elif provider == "ollama":
+                final_api_key = "ollama" # Dummy key to pass check
         
         # Initialize Estimator
         estimator = ClaimEstimator(

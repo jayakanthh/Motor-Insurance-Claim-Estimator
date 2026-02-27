@@ -16,6 +16,11 @@ except ImportError:
     genai = None
 
 try:
+    import ollama
+except ImportError:
+    ollama = None
+
+try:
     import cv2
     import numpy as np
 except ImportError:
@@ -32,7 +37,9 @@ class VisionAgent:
         elif self.provider == "gemini" and genai:
             if self.api_key:
                 genai.configure(api_key=self.api_key)
-            self.client = genai.GenerativeModel('gemini-1.5-pro')
+            self.client = genai.GenerativeModel('gemini-1.5-flash')
+        elif self.provider == "ollama" and ollama:
+            self.client = ollama
 
     def analyze_image(self, images: Union[bytes, List[bytes]]) -> Dict[str, Any]:
         """
@@ -60,6 +67,8 @@ class VisionAgent:
             return self._analyze_with_openai(image_list)
         elif self.provider == "gemini":
             return self._analyze_with_gemini(image_list)
+        elif self.provider == "ollama":
+            return self._analyze_with_ollama(image_list)
         else:
             return self._mock_analysis(image_list)
 
@@ -214,3 +223,43 @@ class VisionAgent:
             
         except Exception as e:
             return {"error": str(e), "damages": []}
+
+    def _analyze_with_ollama(self, image_list: List[bytes]) -> Dict[str, Any]:
+        if not self.client:
+            return {"error": "Ollama client not initialized"}
+            
+        try:
+            # Note: Ollama python client currently processes one image at a time or depends on the model's capabilities
+            # For simplicity, we'll analyze the first image (Front view usually) or merge results in future
+            # Here we will try to send the first image as a sample
+            
+            # LLaVA expects 'images' as a list of paths or bytes
+            # We will use the first image for now as LLaVA context window is limited
+            
+            prompt = """
+            You are an expert car insurance adjuster. Analyze this car damage photo and identify damaged parts.
+            Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+            
+            Return ONLY valid JSON. Format: {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}
+            """
+            
+            # Convert bytes to base64 for Ollama
+            # Ollama Python library handles bytes directly for 'images'
+            
+            response = self.client.chat(
+                model='llava:7b',
+                messages=[
+                  {
+                    'role': 'user',
+                    'content': prompt,
+                    'images': [image_list[0]] # Analyzing primary image
+                  }
+                ],
+                format='json'
+            )
+            
+            content = response['message']['content']
+            return json.loads(content)
+            
+        except Exception as e:
+            return {"error": f"Ollama Error: {str(e)}", "damages": []}

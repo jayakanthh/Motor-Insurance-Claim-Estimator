@@ -206,6 +206,7 @@ export default function Estimate() {
                     <option value="mock">Mock (Demo Mode)</option>
                     <option value="openai">OpenAI GPT-4o</option>
                     <option value="gemini">Gemini 1.5 Pro</option>
+                    <option value="ollama">Ollama (Llava 7b)</option>
                   </select>
                 </div>
 
