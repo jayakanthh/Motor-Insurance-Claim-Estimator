@@ -11,6 +11,11 @@ except ImportError:
     OpenAI = None
 
 try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
+
+try:
     import cv2
     import numpy as np
 except ImportError:
@@ -24,9 +29,10 @@ class VisionAgent:
         
         if self.provider == "openai" and OpenAI:
             self.client = OpenAI(api_key=self.api_key)
-        elif self.provider == "gemini":
-            # self.client = genai.GenerativeModel('gemini-1.5-pro')
-            pass
+        elif self.provider == "gemini" and genai:
+            if self.api_key:
+                genai.configure(api_key=self.api_key)
+            self.client = genai.GenerativeModel('gemini-1.5-pro')
 
     def analyze_image(self, images: Union[bytes, List[bytes]]) -> Dict[str, Any]:
         """
@@ -166,5 +172,45 @@ class VisionAgent:
             return {"error": str(e), "damages": []}
 
     def _analyze_with_gemini(self, image_list: List[bytes]) -> Dict[str, Any]:
-        # Placeholder for Gemini implementation
-        return self._mock_analysis(image_list)
+        if not self.client:
+            return {"error": "Gemini client not initialized"}
+
+        try:
+            # Prepare content for Gemini
+            # Gemini accepts list of [prompt, image1, image2, ...]
+            
+            prompt = """
+            You are an expert car insurance adjuster. Analyze these car damage photos and identify all damaged parts across all images.
+            
+            Supported parts keys: 
+            bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+            
+            Return ONLY valid JSON. Format: 
+            {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}
+            """
+            
+            content = [prompt]
+            
+            for img_bytes in image_list:
+                # Convert bytes to dictionary expected by Gemini SDK or use PIL/Blob
+                # Gemini Python SDK supports passing dictionary with mime_type and data
+                content.append({
+                    "mime_type": "image/jpeg",
+                    "data": img_bytes
+                })
+
+            response = self.client.generate_content(content)
+            
+            # Clean response text (sometimes Gemini adds markdown block quotes)
+            text = response.text.strip()
+            if text.startswith("```json"):
+                text = text[7:]
+            if text.startswith("```"):
+                text = text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+                
+            return json.loads(text.strip())
+            
+        except Exception as e:
+            return {"error": str(e), "damages": []}

@@ -6,6 +6,10 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Adjust path to include backend root
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -63,12 +67,21 @@ async def analyze_claim(
         for img in extra:
             images_content.append(await img.read())
         
+        # Determine API Key
+        # Priority: 1. Frontend provided 2. Env var
+        final_api_key = api_key
+        if not final_api_key:
+            if provider == "openai":
+                final_api_key = os.getenv("OPENAI_API_KEY")
+            elif provider == "gemini":
+                final_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        
         # Initialize Estimator
         estimator = ClaimEstimator(
             parts_db_path="data/parts_db.json", # Relative to project root
             labor_rate=labor_rate,
             provider=provider,
-            api_key=api_key
+            api_key=final_api_key
         )
         
         # Run analysis with list of images
