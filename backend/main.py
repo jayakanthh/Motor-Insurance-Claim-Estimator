@@ -94,7 +94,6 @@ async def analyze_claim(
     provider: str = Form("mock"),
     api_key: Optional[str] = Form(None),
     registration_number: Optional[str] = Form(None),
-    detection_mode: str = Form("conservative"),
     labor_rate: float = Form(75.0)
 ):
     try:
@@ -134,20 +133,34 @@ async def analyze_claim(
         result = estimator.analyze_claim(
             images_content,
             registration_number=registration_number,
-            detection_mode=detection_mode,
+            detection_mode="conservative",
         )
         
         if "error" in result:
-            status_code = 400 if "Registration number is required" in str(result["error"]) else 500
-            raise HTTPException(status_code=status_code, detail=result["error"])
+            error_text = str(result.get("error") or "Unknown error")
+            error_type = result.get("error_type")
+
+            if error_type == "invalid_api_key":
+                raise HTTPException(
+                    status_code=401,
+                    detail={"message": error_text, "error_type": error_type},
+                )
+
+            status_code = 400 if "Registration number is required" in error_text else 500
+            raise HTTPException(
+                status_code=status_code,
+                detail={"message": error_text, "error_type": error_type},
+            )
             
         return {
             "status": "success",
             "data": result
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail={"message": str(e), "error_type": "server_error"})
 
 
 @app.post("/api/export-pdf")

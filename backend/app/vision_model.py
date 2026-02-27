@@ -44,18 +44,58 @@ class VisionAgent:
             parts = self.provider.split(":", 1)
             self.provider = parts[0] # "ollama"
             self.model_name = parts[1] # "qwen3-vl:8b"
+
+        # Handle custom model names for Gemini (e.g., "gemini:gemini-1.5-pro")
+        if self.provider.startswith("gemini:"):
+            parts = self.provider.split(":", 1)
+            self.provider = parts[0]  # "gemini"
+            self.model_name = parts[1]
         
         if self.provider == "openai" and OpenAI:
             self.client = OpenAI(api_key=self.api_key)
         elif self.provider == "gemini" and genai:
             if self.api_key:
                 genai.configure(api_key=self.api_key)
-            self.client = genai.GenerativeModel('gemini-1.5-flash')
+            self.model_name = self._pick_gemini_model_name(self.model_name)
+            self.client = genai.GenerativeModel(self.model_name)
         elif self.provider == "ollama" and ollama:
             self.client = ollama
             # Default model if not specified in provider string
             if not self.model_name:
                 self.model_name = "minicpm-v" # Fallback default
+
+    def _pick_gemini_model_name(self, preferred: str | None) -> str:
+        env_model = os.getenv("GEMINI_MODEL")
+        candidates = [m for m in [preferred, env_model, "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro-vision", "gemini-pro-vision"] if m]
+
+        try:
+            models = list(genai.list_models())
+            supported = []
+            for m in models:
+                try:
+                    methods = getattr(m, "supported_generation_methods", None) or []
+                    if "generateContent" in methods:
+                        supported.append(getattr(m, "name", ""))
+                except Exception:
+                    continue
+
+            supported_set = set(supported)
+            supported_short = set([s.split("models/", 1)[1] for s in supported if s.startswith("models/")])
+
+            for c in candidates:
+                if c in supported_short:
+                    return c
+                if c in supported_set:
+                    return c
+                if f"models/{c}" in supported_set:
+                    return f"models/{c}"
+
+            if supported:
+                return supported[0]
+        except Exception:
+            pass
+
+        return candidates[0]
 
     def analyze_image(self, images: Union[bytes, List[bytes]], mode: str = "full", detection_mode: str = "conservative") -> Dict[str, Any]:
         """
@@ -92,6 +132,30 @@ class VisionAgent:
             return self._analyze_with_ollama(image_list, mode, detection_mode)
         else:
             return self._mock_analysis(image_list)
+
+    def _is_invalid_api_key_error(self, err: str) -> bool:
+        s = (err or "").lower()
+        phrases = [
+            "invalid api key",
+            "api key not valid",
+            "api-key not valid",
+            "incorrect api key",
+            "incorrect api-key",
+            "authentication",
+            "unauthorized",
+            "permission denied",
+            "permission_denied",
+            "401",
+            "403",
+        ]
+        return any(p in s for p in phrases)
+
+    def _invalid_key_payload(self, provider_label: str) -> Dict[str, Any]:
+        return {
+            "error": f"Invalid {provider_label} API key. Please paste a valid key and try again.",
+            "error_type": "invalid_api_key",
+            "damages": [],
+        }
 
     def _preprocess_image(self, image_bytes: bytes) -> bytes:
         """
@@ -197,8 +261,10 @@ class VisionAgent:
             {
                 "car_info": "Maruti Suzuki Swift 2023",
                 "registration_number": "TS-09-EF-4321",
-                "damages": [],
-                "confidence": 0.98
+                "damages": [
+                    {"part": "bumper_front", "severity": "minor", "description": "Light scuff marks visible"}
+                ],
+                "confidence": 0.90
             }
         ]
         
@@ -248,7 +314,10 @@ class VisionAgent:
             content = response.choices[0].message.content
             return json.loads(content)
         except Exception as e:
-            return {"error": str(e), "damages": []}
+            err = str(e)
+            if self._is_invalid_api_key_error(err):
+                return self._invalid_key_payload("OpenAI")
+            return {"error": err, "damages": []}
 
     def _analyze_with_gemini(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:
@@ -299,7 +368,33 @@ class VisionAgent:
             return json.loads(text.strip())
             
         except Exception as e:
-            return {"error": str(e), "damages": []}
+            err = str(e)
+            if self.provider == "gemini" and ("models/" in err and "not found" in err.lower()):
+                try:
+                    self.model_name = self._pick_gemini_model_name(None)
+                    self.client = genai.GenerativeModel(self.model_name)
+                    response = self.client.generate_content(content)
+                    text = response.text.strip()
+                    if text.startswith("```json"):
+                        text = text[7:]
+                    if text.startswith("```"):
+                        text = text[3:]
+                    if text.endswith("```"):
+                        text = text[:-3]
+                    return json.loads(text.strip())
+                except Exception:
+                    pass
+
+            if self.provider == "gemini" and "not found" in err.lower():
+                return {
+                    "error": "Gemini model not available for this API key. Use a Google AI Studio Gemini API key and set a supported model (e.g. gemini-1.5-pro).",
+                    "damages": []
+                }
+
+            if self._is_invalid_api_key_error(err):
+                return self._invalid_key_payload("Gemini")
+
+            return {"error": err, "damages": []}
 
     def _analyze_with_ollama(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:
@@ -370,4 +465,7 @@ class VisionAgent:
             return json.loads(content)
             
         except Exception as e:
-            return {"error": f"Ollama Error: {str(e)}", "damages": []}
+            err = str(e)
+            if self._is_invalid_api_key_error(err):
+                return self._invalid_key_payload("Ollama")
+            return {"error": f"Ollama Error: {err}", "damages": []}

@@ -5,6 +5,8 @@ openai
 google-generativeai
 python-dotenv
 pandas
+requests
+beautifulsoup4
 opencv-python-headless
 pillow
 numpy

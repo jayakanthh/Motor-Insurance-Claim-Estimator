@@ -1,53 +1,76 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRightIcon, CameraIcon, ShieldCheckIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, CameraIcon, ShieldCheckIcon, ClockIcon, MoonIcon, SunIcon, MagnifyingGlassIcon, DocumentTextIcon, CpuChipIcon } from '@heroicons/react/24/outline';
 
 export default function Home() {
+  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+
+  const toggleTheme = () => {
+    const next = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+    setIsDark(next);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 overflow-hidden">
-      {/* Navbar */}
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <div className="bg-blue-600 p-2 rounded-lg">
-            <ShieldCheckIcon className="h-6 w-6 text-white" />
+    <div id="top" className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 overflow-hidden">
+      <div className="fixed top-0 inset-x-0 z-50 pointer-events-none">
+        <div className="max-w-7xl mx-auto px-6 pt-6 pointer-events-auto">
+          <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-blue-200/55 via-indigo-100/55 to-violet-100/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
+            <div className="flex items-center justify-between px-4 py-3">
+              <Link to="/" className="flex items-center gap-2">
+                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
+                  <EqualizerMark className="h-5 w-5 text-white" />
+                </div>
+                <div className="text-lg font-semibold tracking-tight">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700">Claim</span>{' '}
+                  <span className="text-gray-900 dark:text-white">ex</span>
+                </div>
+              </Link>
+
+              <div className="hidden md:flex items-center gap-8 text-gray-700 dark:text-slate-200 font-medium">
+                <a href="#features" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">Features</a>
+                <a href="#how-it-works" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">How it Works</a>
+                <a href="#support" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">Contact</a>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className="h-10 w-10 rounded-full bg-white/70 dark:bg-slate-900 border border-blue-300/60 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                  aria-label="Toggle theme"
+                >
+                  {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+                </button>
+                <Link
+                  to="/estimate"
+                  className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 transition-colors"
+                >
+                  Start
+                </Link>
+              </div>
+            </div>
           </div>
-          <span className="text-xl font-bold text-gray-900 tracking-tight">ClaimEstimator AI</span>
         </div>
-        <div className="hidden md:flex gap-6 text-gray-600 font-medium">
-          <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
-          <a href="#how-it-works" className="hover:text-blue-600 transition-colors">How it Works</a>
-          <a href="#" className="hover:text-blue-600 transition-colors">Support</a>
-        </div>
-        <Link 
-          to="/estimate" 
-          className="bg-white text-blue-600 px-5 py-2.5 rounded-full font-semibold shadow-sm border border-blue-100 hover:shadow-md transition-all"
-        >
-          Start Now
-        </Link>
-      </nav>
+      </div>
 
       {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-6 py-16 md:py-24 grid lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-7xl mx-auto px-6 pt-28 pb-12 md:pt-32 md:pb-20 grid lg:grid-cols-2 gap-12 items-center">
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-            </span>
-            AI-Powered Analysis 2.0
-          </div>
-          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
             Instant Car Damage <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
               Estimates in Seconds
             </span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed max-w-lg">
-            Upload photos of your vehicle and let our advanced AI analyze the damage, estimate repair costs, and generate pre-approval reports instantly.
+          <p className="text-xl text-gray-600 dark:text-slate-300 mb-8 leading-relaxed max-w-lg">
+            Upload photos of your vehicle and let our AI analyze the damage and generate a clean, itemized report instantly.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -60,18 +83,14 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="mt-10 flex items-center gap-6 text-sm text-gray-500 font-medium">
+          <div className="mt-10 flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-slate-400 font-semibold">
             <div className="flex items-center gap-2">
               <CheckIcon className="h-5 w-5 text-green-500" />
-              <span>98% Accuracy</span>
+              <span>Multi-angle assessment</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckIcon className="h-5 w-5 text-green-500" />
-              <span>Instant Report</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckIcon className="h-5 w-5 text-green-500" />
-              <span>Bank Level Security</span>
+              <span>Itemized estimate + PDF export</span>
             </div>
           </div>
         </motion.div>
@@ -85,35 +104,26 @@ export default function Home() {
           <div className="absolute -top-10 -right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
           <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
           
-          <div className="relative bg-white/60 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500">
-             {/* Mock UI Card */}
-             <div className="space-y-4">
-                <div className="h-48 bg-gray-200 rounded-xl w-full overflow-hidden relative">
-                   <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                      <CameraIcon className="h-12 w-12" />
-                   </div>
-                   {/* Overlay simulating scanning */}
-                   <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan"></div>
+          <div className="relative bg-white/60 backdrop-blur-xl border border-white/50 dark:bg-slate-900/40 dark:border-slate-800 rounded-3xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500 hover:shadow-3xl">
+            <div className="space-y-4">
+              <div className="h-72 bg-gray-200 rounded-xl w-full overflow-hidden relative">
+                <img src="/sample-image.jpg" alt="Sample vehicle" className="absolute inset-0 w-full h-full object-cover" />
+                <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan"></div>
+              </div>
+              <div className="space-y-2 pt-2">
+                <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+              </div>
+              <div className="pt-4 flex justify-between items-center">
+                <div>
+                    <div className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold">Estimated Cost</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">₹45,000.00</div>
                 </div>
-                <div className="flex gap-4">
-                   <div className="h-20 w-20 bg-gray-100 rounded-lg"></div>
-                   <div className="h-20 w-20 bg-gray-100 rounded-lg"></div>
-                   <div className="h-20 w-20 bg-gray-100 rounded-lg"></div>
+                <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
+                  Automated
                 </div>
-                <div className="space-y-2 pt-2">
-                   <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                   <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                </div>
-                <div className="pt-4 flex justify-between items-center">
-                   <div>
-                      <div className="text-xs text-gray-500 uppercase font-bold">Estimated Cost</div>
-                      <div className="text-2xl font-bold text-gray-900">₹45,000.00</div>
-                   </div>
-                   <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
-                      Pre-Approved
-                   </div>
-                </div>
-             </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>
@@ -121,8 +131,8 @@ export default function Home() {
       {/* Features Grid */}
       <div id="features" className="max-w-7xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Why Choose ClaimEstimator?</h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">We combine cutting-edge computer vision with insurance expertise to deliver the fastest claim processing experience.</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Auto Audit?</h2>
+          <p className="text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">We combine computer vision with insurance expertise to deliver a fast and transparent estimation experience.</p>
         </div>
         
         <div className="grid md:grid-cols-3 gap-8">
@@ -149,15 +159,128 @@ export default function Home() {
             <motion.div 
               key={idx}
               whileHover={{ y: -5 }}
-              className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl transition-all"
+              className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-xl transition-all"
             >
               <div className={`${feature.color} w-14 h-14 rounded-xl flex items-center justify-center mb-6 shadow-lg`}>
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{feature.desc}</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{feature.title}</h3>
+              <p className="text-gray-600 dark:text-slate-300 leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
+        </div>
+      </div>
+
+      <div id="how-it-works" className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">How it Works</h2>
+          <p className="text-gray-600 dark:text-slate-300 max-w-3xl mx-auto">From 4 photos to a repair estimate: AI detects damages, enriches vehicle details using the registration number, prices parts using multiple sources, and generates a PDF report.</p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            {
+              icon: <CameraIcon className="h-8 w-8 text-white" />,
+              title: "Upload required photos",
+              desc: "Front, rear, left, and right angles; add optional close-ups for clarity.",
+              color: "bg-blue-600"
+            },
+            {
+              icon: <CpuChipIcon className="h-8 w-8 text-white" />,
+              title: "Pick an AI provider",
+              desc: "Run in demo mode or choose OpenAI, Gemini, or local Ollama models.",
+              color: "bg-indigo-600"
+            },
+            {
+              icon: <MagnifyingGlassIcon className="h-8 w-8 text-white" />,
+              title: "Add registration number",
+              desc: "Used to enrich make/model/year for more accurate parts matching and pricing.",
+              color: "bg-violet-600"
+            },
+            {
+              icon: <ShieldCheckIcon className="h-8 w-8 text-white" />,
+              title: "Conservative detection",
+              desc: "Built-in strict prompting + evidence filtering to reduce false positives.",
+              color: "bg-purple-600"
+            },
+            {
+              icon: <ClockIcon className="h-8 w-8 text-white" />,
+              title: "Price parts intelligently",
+              desc: "Tries web prices first, then falls back to a local parts DB or average values.",
+              color: "bg-sky-600"
+            },
+            {
+              icon: <DocumentTextIcon className="h-8 w-8 text-white" />,
+              title: "Review + export PDF",
+              desc: "Get damages, totals, detailed line-items, and a downloadable report.",
+              color: "bg-blue-700"
+            }
+          ].map((step, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.5, delay: idx * 0.04 }}
+              whileHover={{ y: -5 }}
+              className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl p-8 rounded-2xl shadow-sm border border-white/50 dark:border-slate-800 hover:shadow-xl transition-all"
+            >
+              <div className={`${step.color} w-14 h-14 rounded-xl flex items-center justify-center mb-6 shadow-lg`}>
+                {step.icon}
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{step.title}</h3>
+              <p className="text-gray-700 dark:text-slate-300 leading-relaxed">{step.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.55, delay: 0.05 }}
+          className="mt-10 bg-white/60 dark:bg-slate-900/50 backdrop-blur-2xl border border-white/60 dark:border-slate-800 rounded-3xl p-8"
+        >
+          <h3 className="text-xl font-extrabold text-gray-900 dark:text-white mb-3">Under the hood</h3>
+          <div className="grid md:grid-cols-2 gap-6 text-gray-700 dark:text-slate-300 leading-relaxed">
+            <ul className="space-y-2">
+              <li>Multi-angle input: 4 mandatory views + optional extras.</li>
+              <li>Local-model support: combines angles when needed for single-image inference.</li>
+              <li>False-positive control: strict prompts + evidence-based filtering.</li>
+              <li>Standardized part keys: consistent mapping for estimation and reporting.</li>
+            </ul>
+            <ul className="space-y-2">
+              <li>Pricing hierarchy: web search → local DB → average fallback.</li>
+              <li>Fast UX: capped/parallel price lookups to keep runtime reasonable.</li>
+              <li>Transparent results: itemized line-items with sources.</li>
+              <li>Export: one-click PDF report for sharing and documentation.</li>
+            </ul>
+          </div>
+        </motion.div>
+      </div>
+
+      <div id="support" className="max-w-7xl mx-auto px-6 pb-20">
+        <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-xl border border-white/60 dark:border-slate-800 rounded-3xl p-10 shadow-sm">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Support</h2>
+              <p className="text-gray-600 dark:text-slate-300 leading-relaxed">Need help with uploads, pricing, or model selection? Reach out and we’ll help you troubleshoot quickly.</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 md:justify-end">
+              <a
+                href="mailto:support@claimestimator.ai"
+                className="px-6 py-3 rounded-xl bg-white dark:bg-slate-950 border border-gray-200 dark:border-slate-800 text-gray-900 dark:text-white font-bold hover:bg-gray-50 dark:hover:bg-slate-900 transition-colors text-center"
+              >
+                Email Support
+              </a>
+              <Link
+                to="/estimate"
+                className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors text-center"
+              >
+                Try Estimation
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -168,6 +291,17 @@ function CheckIcon(props) {
   return (
     <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+    </svg>
+  );
+}
+
+function EqualizerMark(props) {
+  return (
+    <svg {...props} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M6 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M10 4v16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M14 8v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M18 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }

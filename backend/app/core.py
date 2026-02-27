@@ -165,6 +165,7 @@ class ClaimEstimator:
         if "error" in analysis_result:
             return {
                 "error": analysis_result["error"],
+                "error_type": analysis_result.get("error_type"),
                 "damage_assessment": {"damages": [], "car_info": "Unknown"},
                 "cost_estimate": {"line_items": [], "summary": {"total_cost": 0}},
                 "status": "Error"
