@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 
 export default function Estimate() {
+  const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:8000`;
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
 
   const toggleTheme = () => {
@@ -121,7 +122,7 @@ export default function Estimate() {
       setProvidersLoading(true);
       setProvidersError(null);
       try {
-        const response = await axios.get('http://localhost:8000/api/providers', { timeout: 2500 });
+        const response = await axios.get(`${API_BASE_URL}/api/providers`, { timeout: 2500 });
         if (response.data.providers) {
           const fetchedProviders = response.data.providers;
           setAvailableProviders(fetchedProviders);
@@ -178,7 +179,7 @@ export default function Estimate() {
   const exportPdf = async () => {
     if (!result) return;
     try {
-      const response = await axios.post('http://localhost:8000/api/export-pdf', { report: result }, {
+      const response = await axios.post(`${API_BASE_URL}/api/export-pdf`, { report: result }, {
         responseType: 'blob',
         timeout: 15000
       });
@@ -268,7 +269,7 @@ export default function Estimate() {
     formData.append('labor_rate', config.laborRate);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/analyze-claim', formData, {
+      const response = await axios.post(`${API_BASE_URL}/api/analyze-claim`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
