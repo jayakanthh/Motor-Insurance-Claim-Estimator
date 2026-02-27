@@ -10,6 +10,13 @@ try:
 except ImportError:
     OpenAI = None
 
+try:
+    import cv2
+    import numpy as np
+except ImportError:
+    cv2 = None
+    np = None
+
 class VisionAgent:
     def __init__(self, provider="mock", api_key=None):
         self.provider = provider
@@ -25,12 +32,55 @@ class VisionAgent:
         """
         Analyzes the car damage image and returns a structured assessment.
         """
+        # Preprocess using OpenCV if available
+        if cv2 and np:
+            try:
+                image_bytes = self._preprocess_image(image_bytes)
+            except Exception as e:
+                print(f"Warning: Image preprocessing failed: {e}")
+
         if self.provider == "openai":
             return self._analyze_with_openai(image_bytes)
         elif self.provider == "gemini":
             return self._analyze_with_gemini(image_bytes)
         else:
             return self._mock_analysis(image_bytes)
+
+    def _preprocess_image(self, image_bytes: bytes) -> bytes:
+        """
+        Resizes and enhances image using OpenCV.
+        """
+        # Convert bytes to numpy array
+        nparr = np.frombuffer(image_bytes, np.uint8)
+        img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if img is None:
+            return image_bytes
+
+        # Resize if too large (max 1024px) to save tokens and bandwidth
+        height, width = img.shape[:2]
+        max_dim = 1024
+        if max(height, width) > max_dim:
+            scale = max_dim / max(height, width)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+            img = cv2.resize(img, (new_width, new_height))
+            
+        # Enhance contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        # This helps highlight scratches and dents
+        try:
+            lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+            cl = clahe.apply(l)
+            limg = cv2.merge((cl,a,b))
+            img = cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
+        except Exception:
+            pass # Skip if enhancement fails
+
+        # Encode back to bytes
+        _, buffer = cv2.imencode('.jpg', img)
+        return buffer.tobytes()
 
     def _mock_analysis(self, image_bytes: bytes) -> Dict[str, Any]:
         """
