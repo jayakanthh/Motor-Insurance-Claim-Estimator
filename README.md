@@ -15,8 +15,8 @@ This project aims to streamline the motor insurance claim process by automating 
 
 ## Tech Stack
 
-- **Frontend**: Streamlit (for rapid prototyping and interactive UI)
-- **Backend**: Python
+- **Frontend**: React, Tailwind CSS
+- **Backend**: FastAPI (Python)
 - **AI/ML**: 
     - OpenAI GPT-4o / Google Gemini 1.5 Pro (Vision LLM for damage assessment)
     - OpenCV (Image pre-processing)
@@ -31,14 +31,19 @@ This project aims to streamline the motor insurance claim process by automating 
 
 ## Setup Instructions
 
-1. Clone the repository.
+### Backend
+1. Navigate to `backend/`
 2. Install dependencies: `pip install -r requirements.txt`
-3. Set up environment variables (API keys).
-4. Run the application: `streamlit run app.py`
+3. Run server: `python main.py`
+
+### Frontend
+1. Navigate to `frontend/`
+2. Install dependencies: `npm install`
+3. Run dev server: `npm run dev`
 
 ## Deliverables
 
 - [x] Technical Documentation
-- [ ] Working Prototype
-- [ ] Damage Detection Model (via VLM)
-- [ ] Cost Estimation Report
+- [x] Working Prototype (Full Stack)
+- [x] Damage Detection Model (via VLM)
+- [x] Cost Estimation Report
