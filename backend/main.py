@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from typing import Optional
+from typing import Optional, List
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -40,18 +40,30 @@ async def health_check():
 
 @app.post("/api/analyze-claim")
 async def analyze_claim(
-    image: UploadFile = File(...),
+    front: UploadFile = File(...),
+    back: UploadFile = File(...),
+    left: UploadFile = File(...),
+    right: UploadFile = File(...),
+    extra: List[UploadFile] = File(default=[]),
     provider: str = Form("mock"),
     api_key: Optional[str] = Form(None),
     labor_rate: float = Form(75.0)
 ):
     try:
-        # Read image content
-        contents = await image.read()
+        # Read image contents
+        images_content = []
+        
+        # Mandatory images
+        images_content.append(await front.read())
+        images_content.append(await back.read())
+        images_content.append(await left.read())
+        images_content.append(await right.read())
+        
+        # Optional images
+        for img in extra:
+            images_content.append(await img.read())
         
         # Initialize Estimator
-        # Note: In a production app, we might want to dependency inject this or cache it
-        # But for now, re-initializing is fine as it's lightweight
         estimator = ClaimEstimator(
             parts_db_path="data/parts_db.json", # Relative to project root
             labor_rate=labor_rate,
@@ -59,8 +71,8 @@ async def analyze_claim(
             api_key=api_key
         )
         
-        # Run analysis
-        result = estimator.analyze_claim(contents)
+        # Run analysis with list of images
+        result = estimator.analyze_claim(images_content)
         
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])

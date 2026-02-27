@@ -3,7 +3,7 @@ import os
 import json
 import random
 import time
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 try:
     from openai import OpenAI
@@ -28,23 +28,34 @@ class VisionAgent:
             # self.client = genai.GenerativeModel('gemini-1.5-pro')
             pass
 
-    def analyze_image(self, image_bytes: bytes) -> Dict[str, Any]:
+    def analyze_image(self, images: Union[bytes, List[bytes]]) -> Dict[str, Any]:
         """
-        Analyzes the car damage image and returns a structured assessment.
+        Analyzes the car damage image(s) and returns a structured assessment.
+        Accepts either a single bytes object or a list of bytes objects.
         """
+        # Normalize input to list
+        if isinstance(images, bytes):
+            image_list = [images]
+        else:
+            image_list = images
+
         # Preprocess using OpenCV if available
         if cv2 and np:
-            try:
-                image_bytes = self._preprocess_image(image_bytes)
-            except Exception as e:
-                print(f"Warning: Image preprocessing failed: {e}")
+            processed_images = []
+            for img_bytes in image_list:
+                try:
+                    processed_images.append(self._preprocess_image(img_bytes))
+                except Exception as e:
+                    print(f"Warning: Image preprocessing failed: {e}")
+                    processed_images.append(img_bytes)
+            image_list = processed_images
 
         if self.provider == "openai":
-            return self._analyze_with_openai(image_bytes)
+            return self._analyze_with_openai(image_list)
         elif self.provider == "gemini":
-            return self._analyze_with_gemini(image_bytes)
+            return self._analyze_with_gemini(image_list)
         else:
-            return self._mock_analysis(image_bytes)
+            return self._mock_analysis(image_list)
 
     def _preprocess_image(self, image_bytes: bytes) -> bytes:
         """
@@ -82,7 +93,7 @@ class VisionAgent:
         _, buffer = cv2.imencode('.jpg', img)
         return buffer.tobytes()
 
-    def _mock_analysis(self, image_bytes: bytes) -> Dict[str, Any]:
+    def _mock_analysis(self, image_list: List[bytes]) -> Dict[str, Any]:
         """
         Simulates AI analysis for demo purposes.
         """
@@ -115,36 +126,37 @@ class VisionAgent:
         
         return random.choice(scenarios)
 
-    def _analyze_with_openai(self, image_bytes: bytes) -> Dict[str, Any]:
+    def _analyze_with_openai(self, image_list: List[bytes]) -> Dict[str, Any]:
         if not self.client:
             return {"error": "OpenAI client not initialized"}
 
         try:
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+            content_list = [{"type": "text", "text": "Analyze these car damage photos. Identify all damaged parts across all images."}]
             
+            for img_bytes in image_list:
+                base64_image = base64.b64encode(img_bytes).decode('utf-8')
+                content_list.append({
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{base64_image}"
+                    }
+                })
+
             response = self.client.chat.completions.create(
                 model="gpt-4o",
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert car insurance adjuster. Analyze the image and identify damaged parts.
+                        "content": """You are an expert car insurance adjuster. Analyze the provided images and identify damaged parts.
                         Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
                         Return ONLY valid JSON. Format: {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}"""
                     },
                     {
                         "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Analyze this car damage."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}"
-                                }
-                            }
-                        ]
+                        "content": content_list
                     }
                 ],
-                max_tokens=500,
+                max_tokens=1000,
                 response_format={"type": "json_object"}
             )
             
@@ -153,6 +165,6 @@ class VisionAgent:
         except Exception as e:
             return {"error": str(e), "damages": []}
 
-    def _analyze_with_gemini(self, image_bytes: bytes) -> Dict[str, Any]:
+    def _analyze_with_gemini(self, image_list: List[bytes]) -> Dict[str, Any]:
         # Placeholder for Gemini implementation
-        return self._mock_analysis(image_bytes)
+        return self._mock_analysis(image_list)
