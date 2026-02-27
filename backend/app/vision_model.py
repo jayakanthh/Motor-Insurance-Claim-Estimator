@@ -237,10 +237,17 @@ class VisionAgent:
             # We will use the first image for now as LLaVA context window is limited
             
             prompt = """
-            You are an expert car insurance adjuster. Analyze this car damage photo and identify damaged parts.
+            You are an expert car insurance adjuster. Analyze this car damage photo.
+            1. Identify the car Make and Model if possible (e.g. "Toyota Camry", "Honda Civic"). If unknown, say "Unknown Car".
+            2. Identify all damaged parts.
+            
             Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
             
-            Return ONLY valid JSON. Format: {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}
+            Return ONLY valid JSON. Format: 
+            {
+                "car_info": "Make Model Year (or Unknown)",
+                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
+            }
             """
             
             # Convert bytes to base64 for Ollama
@@ -259,6 +266,17 @@ class VisionAgent:
             )
             
             content = response['message']['content']
+            
+            # Clean content for JSON parsing
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+            
             return json.loads(content)
             
         except Exception as e:

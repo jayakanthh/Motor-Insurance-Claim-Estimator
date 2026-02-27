@@ -9,3 +9,5 @@ opencv-python-headless
 pillow
 numpy
 reportlab
+ollama
+duckduckgo-search
