@@ -1,8 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
 import { 
-  CloudArrowUpIcon, 
   CheckCircleIcon, 
   ExclamationCircleIcon,
   CurrencyDollarIcon,
@@ -36,17 +35,95 @@ export default function Estimate() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [config, setConfig] = useState({
-    provider: 'ollama',
+    provider: 'mock',
     apiKey: '',
+    registrationNumber: '',
+    detectionMode: 'conservative',
     laborRate: 500
   });
+  const [availableProviders, setAvailableProviders] = useState([
+    { id: 'mock', name: 'Mock (Demo Mode)' },
+    { id: 'openai', name: 'OpenAI GPT-4o' },
+    { id: 'gemini', name: 'Gemini 1.5 Pro' }
+  ]);
+  const [providersLoading, setProvidersLoading] = useState(false);
+  const [providersError, setProvidersError] = useState(null);
+
+  // Fetch available providers on mount
+  useEffect(() => {
+    const fetchProviders = async () => {
+      setProvidersLoading(true);
+      setProvidersError(null);
+      try {
+        const response = await axios.get('http://localhost:8000/api/providers', { timeout: 2500 });
+        if (response.data.providers) {
+          const fetchedProviders = response.data.providers;
+          setAvailableProviders(fetchedProviders);
+          
+          // Auto-select a good default if available
+          const ollamaModels = fetchedProviders.filter(p => p.id.startsWith('ollama:'));
+          if (ollamaModels.length > 0) {
+            const preferred = ollamaModels.find(p => p.id.includes('llava:13b'))
+              || ollamaModels.find(p => p.id.includes('minicpm-v'));
+            if (preferred) {
+                setConfig(prev => ({ ...prev, provider: preferred.id }));
+            } else {
+                setConfig(prev => ({ ...prev, provider: ollamaModels[0].id }));
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch providers:", err);
+        setProvidersError('Could not load providers. Backend may be offline.');
+      } finally {
+        setProvidersLoading(false);
+      }
+    };
+    fetchProviders();
+  }, []);
+
+  const resetEstimation = () => {
+    setFiles({ front: null, back: null, left: null, right: null, extras: [] });
+    setPreviews({ front: null, back: null, left: null, right: null, extras: [] });
+    setResult(null);
+    setError(null);
+    setConfig(prev => ({ ...prev, apiKey: '', registrationNumber: '', detectionMode: 'conservative', laborRate: 500 }));
+  };
+
+  const exportPdf = async () => {
+    if (!result) return;
+    try {
+      const response = await axios.post('http://localhost:8000/api/export-pdf', { report: result }, {
+        responseType: 'blob',
+        timeout: 15000
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `estimate-${(result?.damage_assessment?.registration_number || 'unknown').replace(/\W+/g, '')}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.detail || 'Failed to export PDF. Please try again.');
+    }
+  };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 2
-    }).format(amount);
+    if (amount === undefined || amount === null || Number.isNaN(amount)) return '₹0.00';
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        maximumFractionDigits: 2
+      }).format(amount);
+    } catch (e) {
+      console.error("Currency format error:", e);
+      return '₹0.00';
+    }
   };
 
   const onDrop = useCallback((acceptedFiles, type) => {
@@ -93,6 +170,8 @@ export default function Estimate() {
 
     formData.append('provider', config.provider);
     if (config.apiKey) formData.append('api_key', config.apiKey);
+    if (config.registrationNumber) formData.append('registration_number', config.registrationNumber);
+    formData.append('detection_mode', config.detectionMode);
     formData.append('labor_rate', config.laborRate);
 
     try {
@@ -186,9 +265,13 @@ export default function Estimate() {
             </div>
             ClaimEstimator AI
           </Link>
-          <div className="text-sm text-gray-500">
+          <button
+            type="button"
+            onClick={resetEstimation}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-800"
+          >
             New Estimation
-          </div>
+          </button>
         </div>
       </header>
 
@@ -211,21 +294,47 @@ export default function Estimate() {
                     className="w-full rounded-lg border-gray-300 border p-2.5 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
                     value={config.provider}
                     onChange={(e) => setConfig({...config, provider: e.target.value})}
+                    disabled={providersLoading}
                   >
-                    <option value="mock">Mock (Demo Mode)</option>
-                    <option value="openai">OpenAI GPT-4o</option>
-                    <option value="gemini">Gemini 1.5 Pro</option>
-                    <option value="ollama">MiniCPM-V (Best for Details)</option>
+                    {availableProviders.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  {providersError && (
+                    <div className="mt-2 text-xs text-red-600">{providersError}</div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number (if plate not readable)</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. KA01AB1234"
+                    value={config.registrationNumber}
+                    onChange={(e) => setConfig({ ...config, registrationNumber: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Damage Detection</label>
+                  <select
+                    className="w-full rounded-lg border-gray-300 border p-2.5 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
+                    value={config.detectionMode}
+                    onChange={(e) => setConfig({ ...config, detectionMode: e.target.value })}
+                  >
+                    <option value="conservative">Conservative (fewer false positives)</option>
+                    <option value="sensitive">Sensitive (find more damage)</option>
                   </select>
                 </div>
 
-                {config.provider !== 'mock' && (
+                {config.provider !== 'mock' && !config.provider.startsWith('ollama:') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
                     <input 
                       type="password"
                       className="w-full rounded-lg border-gray-300 border p-2.5 focus:ring-2 focus:ring-blue-500"
-                      placeholder={`Enter ${config.provider} API Key`}
+                      placeholder={`Enter ${config.provider.toUpperCase()} API Key`}
                       value={config.apiKey}
                       onChange={(e) => setConfig({...config, apiKey: e.target.value})}
                     />
@@ -314,29 +423,23 @@ export default function Estimate() {
             {/* Results Section */}
             {result && (
               <div className="animate-fade-in space-y-6">
-                {/* Status Banner */}
-                <div className={`p-6 rounded-2xl border ${
-                  result.status === 'Pre-Approved' 
-                    ? 'bg-green-50 border-green-200 text-green-800' 
-                    : 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                }`}>
+                <div className="flex flex-wrap gap-3 justify-end">
+                  <button
+                    type="button"
+                    onClick={exportPdf}
+                    className="px-4 py-2 rounded-lg bg-white border border-gray-200 text-gray-800 font-semibold hover:bg-gray-50"
+                  >
+                    Export PDF
+                  </button>
+                </div>
+                <div className="p-6 rounded-2xl border bg-blue-50 border-blue-200 text-blue-800">
                   <div className="flex items-start md:items-center gap-4">
-                    <div className={`p-3 rounded-full ${
-                      result.status === 'Pre-Approved' ? 'bg-green-100' : 'bg-yellow-100'
-                    }`}>
-                      {result.status === 'Pre-Approved' ? (
-                        <CheckCircleIcon className="h-8 w-8" />
-                      ) : (
-                        <ExclamationCircleIcon className="h-8 w-8" />
-                      )}
+                    <div className="p-3 rounded-full bg-blue-100">
+                      <CheckCircleIcon className="h-8 w-8" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">{result.status}</h2>
-                      <p className="opacity-90 mt-1">
-                        {result.status === 'Pre-Approved' 
-                          ? 'This estimate falls within automatic approval limits. Instant payout available.' 
-                          : 'This estimate requires manual review by an adjuster due to high value or complexity.'}
-                      </p>
+                      <h2 className="text-2xl font-bold">Estimate</h2>
+                      <p className="opacity-90 mt-1">This is an automated cost estimate based on detected damages and part prices.</p>
                     </div>
                   </div>
                 </div>
@@ -352,13 +455,13 @@ export default function Estimate() {
                       <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Make & Model</span>
                         <span className="font-bold text-gray-900 text-lg">
-                          {result.damage_assessment.car_info}
+                          {result?.damage_assessment?.car_info || "Unknown Car"}
                         </span>
                       </div>
                       <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Registration Number</span>
                         <span className="font-bold text-gray-900 text-lg font-mono">
-                          {result.damage_assessment.registration_number || "Not Visible"}
+                          {result?.damage_assessment?.registration_number || "Not Visible"}
                         </span>
                       </div>
                     </div>
@@ -371,24 +474,24 @@ export default function Estimate() {
                       Identified Damages
                     </h3>
                     <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                      {result.damage_assessment.damages.map((damage, idx) => (
+                      {result?.damage_assessment?.damages?.map((damage, idx) => (
                         <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-blue-200 transition-colors">
                           <div className="flex justify-between items-start mb-2">
                             <span className="font-bold text-gray-900 capitalize">
-                              {damage.part.replace(/_/g, ' ')}
+                              {damage?.part?.replace(/_/g, ' ') || 'Unknown Part'}
                             </span>
                             <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize ${
                               damage.severity === 'severe' ? 'bg-red-100 text-red-700' :
                               damage.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
                               'bg-green-100 text-green-700'
                             }`}>
-                              {damage.severity}
+                              {damage.severity || 'moderate'}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-600 leading-relaxed">{damage.description}</p>
+                          <p className="text-sm text-gray-600 leading-relaxed">{damage.description || 'No description available.'}</p>
                         </div>
                       ))}
-                      {result.damage_assessment.damages.length === 0 && (
+                      {(!result?.damage_assessment?.damages || result.damage_assessment.damages.length === 0) && (
                         <p className="text-gray-500 italic text-center py-8">No significant damages detected.</p>
                       )}
                     </div>
@@ -404,24 +507,24 @@ export default function Estimate() {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Parts Total</span>
-                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.total_parts_cost)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result?.cost_estimate?.summary?.total_parts_cost)}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">
-                          Labor ({result.cost_estimate.summary.total_labor_hours} hrs)
+                          Labor ({result?.cost_estimate?.summary?.total_labor_hours || 0} hrs)
                         </span>
-                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.total_labor_cost)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result?.cost_estimate?.summary?.total_labor_cost)}</span>
                       </div>
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <span className="text-gray-600">Tax (18% GST)</span>
-                        <span className="font-semibold text-gray-900">{formatCurrency(result.cost_estimate.summary.tax)}</span>
+                        <span className="font-semibold text-gray-900">{formatCurrency(result?.cost_estimate?.summary?.tax)}</span>
                       </div>
                       
                       <div className="pt-4 mt-4 border-t border-gray-100">
                         <div className="flex justify-between items-end">
                           <span className="text-gray-500 font-medium">Grand Total</span>
                           <span className="text-3xl font-bold text-blue-600">
-                            {formatCurrency(result.cost_estimate.summary.total_cost)}
+                            {formatCurrency(result?.cost_estimate?.summary?.total_cost)}
                           </span>
                         </div>
                       </div>
@@ -447,10 +550,10 @@ export default function Estimate() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {result.cost_estimate.line_items.map((item, idx) => (
+                        {result?.cost_estimate?.line_items?.map((item, idx) => (
                           <tr key={idx} className="hover:bg-blue-50/30 transition-colors">
                             <td className="px-6 py-4 font-medium capitalize text-gray-900">
-                              {item.part.replace(/_/g, ' ')}
+                              {item.part?.replace(/_/g, ' ') || 'Unknown'}
                             </td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${
@@ -458,7 +561,7 @@ export default function Estimate() {
                                 item.severity === 'moderate' ? 'bg-orange-50 text-orange-700' :
                                 'bg-green-50 text-green-700'
                               }`}>
-                                {item.severity}
+                                {item.severity || 'moderate'}
                               </span>
                             </td>
                             <td className="px-6 py-4 text-right text-gray-600 font-medium">

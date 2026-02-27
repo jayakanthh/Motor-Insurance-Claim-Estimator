@@ -1,8 +1,10 @@
 import json
 import os
 import re
-from typing import Dict, Any, List
+import concurrent.futures
+from typing import Dict, Any
 from .vision_model import VisionAgent
+from .rto_lookup import RTOLookup
 
 try:
     from duckduckgo_search import DDGS
@@ -21,7 +23,31 @@ class ClaimEstimator:
         self.parts_db = self._load_parts_db(full_path)
         self.labor_rate = labor_rate
         self.vision_agent = VisionAgent(provider=provider, api_key=api_key)
+        self.rto_lookup = RTOLookup()
         self.usd_to_inr = 85.0 # Approximate conversion rate
+        self.avg_part_cost_inr = self._compute_average_part_cost_inr()
+        self.price_cache: Dict[str, tuple[float | None, str]] = {}
+
+    def _compute_average_part_cost_inr(self) -> float:
+        costs = []
+        for v in (self.parts_db or {}).values():
+            try:
+                costs.append(float(v.get("part_cost")))
+            except Exception:
+                continue
+        if not costs:
+            return 3000.0
+        return (sum(costs) / len(costs)) * self.usd_to_inr
+
+    def _normalize_registration_number(self, registration_number: str | None) -> str | None:
+        if not registration_number:
+            return None
+        reg = registration_number.replace("-", "").replace(" ", "").upper().strip()
+        if len(reg) < 6:
+            return None
+        if not reg.isalnum():
+            return None
+        return reg
 
     def _load_parts_db(self, path: str) -> Dict[str, Any]:
         try:
@@ -33,120 +59,107 @@ class ClaimEstimator:
 
     def _search_part_price(self, part_name: str, car_info: str) -> tuple[float | None, str]:
         """
-        Searches for the part price in India using DuckDuckGo.
+        Searches for the part price in India using DuckDuckGo, targeting reputable auto parts sites.
         Returns (price, source_url) or (None, "") if not found.
         """
         if not DDGS:
             print("Web Search Disabled: DuckDuckGo library missing")
             return None, ""
 
-        # Construct specific query for Indian market
-        # Example: "Maruti Swift 2022 front bumper price India buy online"
+        cache_key = f"{car_info}|{part_name}".lower()
+        if cache_key in self.price_cache:
+            return self.price_cache[cache_key]
+
         search_term = part_name.replace('_', ' ')
+        
+        # 1. First attempt: Site-specific searches for high accuracy
+        # We'll try the most reliable one first: boodmo.com (very popular in India)
+        
+        sites_to_try = ["boodmo.com", "amazon.in"]
+        
+        for site in sites_to_try:
+            if car_info and car_info != "Unknown Car":
+                query = f"site:{site} {car_info} {search_term} price"
+            else:
+                query = f"site:{site} {search_term} price car part"
+                
+            print(f"🔍 Reputable Site Search ({site}): '{query}'")
+            
+            try:
+                results = DDGS().text(query, max_results=3)
+                price, url = self._extract_price_from_results(results, part_name)
+                if price:
+                    self.price_cache[cache_key] = (price, url)
+                    return price, url
+            except Exception as e:
+                print(f"⚠️ Search failed for {site}: {e}")
+
+        # 2. Second attempt: General search with "buy online India"
         if car_info and car_info != "Unknown Car":
             query = f"{car_info} {search_term} price in India buy online"
         else:
             query = f"{search_term} car part price India buy online"
              
-        print(f"🔍 Web Search Query: '{query}'")
+        print(f"🔍 General Web Search: '{query}'")
         
         try:
-            # Get more results to increase chance of finding a price
             results = DDGS().text(query, max_results=5)
-            
-            for r in results:
-                title = r.get('title', '')
-                body = r.get('body', '')
-                href = r.get('href', '')
-                
-                # Combine title and body for search
-                text_content = f"{title} {body}"
-                
-                # Regex to find price in Rs. or ₹
-                # Improved regex to handle: Rs. 1,200 | ₹ 1200 | INR 1200 | Rs 1500/-
-                prices = re.findall(r'(?:Rs\.?|₹|INR)\s?([\d,]+)', text_content, re.IGNORECASE)
-                
-                if prices:
-                    for p_str in prices:
-                        try:
-                            clean_price = float(p_str.replace(',', ''))
-                            # Sanity check: Car parts usually > ₹100 and < ₹1,00,000 (except engines)
-                            if 100 < clean_price < 100000:
-                                print(f"✅ Found price for {part_name}: ₹{clean_price} (Source: {href})")
-                                return clean_price, href
-                        except ValueError:
-                            continue
+            price, url = self._extract_price_from_results(results, part_name)
+            if price:
+                self.price_cache[cache_key] = (price, url)
+                return price, url
                             
         except Exception as e:
-            print(f"❌ Web search failed: {e}")
+            print(f"❌ General web search failed: {e}")
             
         print(f"⚠️ No valid price found for {part_name} via web search.")
+        self.price_cache[cache_key] = (None, "")
+        return None, ""
+
+    def _extract_price_from_results(self, results, part_name):
+        """Helper to extract price from search results"""
+        for r in results:
+            title = r.get('title', '')
+            body = r.get('body', '')
+            href = r.get('href', '')
+            
+            # Combine title and body for search
+            text_content = f"{title} {body}"
+            
+            # Regex to find price in Rs. or ₹
+            # Handles: Rs. 1,200 | ₹ 1200 | INR 1200 | ₹1,200.00
+            prices = re.findall(r'(?:Rs\.?|₹|INR)\s?([\d,]+(?:\.\d{2})?)', text_content, re.IGNORECASE)
+            
+            if prices:
+                for p_str in prices:
+                    try:
+                        clean_price = float(p_str.replace(',', ''))
+                        # Sanity check: Car parts usually > ₹100 and < ₹1,50,000
+                        if 100 < clean_price < 150000:
+                            print(f"✅ Found price for {part_name}: ₹{clean_price} (Source: {href})")
+                            return clean_price, href
+                    except ValueError:
+                        continue
         return None, ""
 
     def _search_vehicle_info(self, registration_number: str) -> str | None:
         """
-        Attempts to find vehicle make and model using the registration number via web search.
-        Query example: "Vehicle details for KA01AB1234"
+        Attempts to find vehicle make and model using the registration number.
+        Uses RTOLookup module which leverages web search/scraping.
         """
-        # Skip if no library or invalid registration number
-        if not DDGS or not registration_number or "Unknown" in registration_number or "License" in registration_number:
+        if not registration_number or "Unknown" in registration_number or "License" in registration_number:
             return None
             
-        # Clean registration number (e.g., "KA-01-AB-1234" -> "KA01AB1234")
-        reg_no = registration_number.replace("-", "").replace(" ", "").upper()
-        
-        # Basic validation for Indian plates (min 6 chars, e.g., KA01A1)
-        if len(reg_no) < 6:
-            return None
+        return self.rto_lookup.get_vehicle_details(registration_number)
 
-        # Query to find vehicle details associated with the plate
-        query = f"vehicle details for {reg_no} India owner make model"
-        print(f"🔍 Searching vehicle info for Registration: {reg_no}")
-        
-        try:
-            # Get search results
-            results = DDGS().text(query, max_results=5)
-            
-            # Common Indian car brands to check for in search snippets
-            # This helps filter noise from search results
-            brands = ["Maruti", "Suzuki", "Hyundai", "Tata", "Mahindra", "Toyota", "Honda", "Kia", "Volkswagen", "Skoda", "Renault", "Nissan", "Ford", "MG", "BMW", "Mercedes", "Audi"]
-            
-            for r in results:
-                # Combine title and body for broader context
-                text = (r.get('title', '') + " " + r.get('body', '')).lower()
-                
-                # Check if any car brand is mentioned in the search result for this plate
-                for brand in brands:
-                    if brand.lower() in text:
-                        # If a brand is found, we assume it's likely the car's make
-                        # To be more precise, we could look for model names near the brand
-                        # For now, returning the Brand + "Vehicle" is better than "Unknown"
-                        
-                        # Try to find model names (simple heuristic)
-                        # e.g. "Swift", "City", "Creta", "Nexon"
-                        common_models = ["swift", "baleno", "creta", "seltos", "city", "amaze", "nexon", "harrier", "fortuner", "innova", "i20", "wagonr", "alto", "dzire"]
-                        
-                        found_model = ""
-                        for model in common_models:
-                            if model in text:
-                                found_model = model.capitalize()
-                                break
-                        
-                        detected_info = f"{brand} {found_model}".strip()
-                        print(f"✅ Detected Vehicle from Web: {detected_info}")
-                        return detected_info
-                        
-        except Exception as e:
-            print(f"❌ Vehicle info search failed: {e}")
-            
-        return None
-
-    def analyze_claim(self, image_bytes: bytes) -> Dict[str, Any]:
+    def _analyze_claim(self, image_bytes: bytes, registration_number: str | None = None, detection_mode: str = "conservative") -> Dict[str, Any]:
         """
         Full workflow: Image -> Vision AI -> Damage Assessment -> Cost Calculation -> Report
         """
-        # Step 1: Analyze Image
-        analysis_result = self.vision_agent.analyze_image(image_bytes)
+        manual_reg = self._normalize_registration_number(registration_number)
+        mode = "damages_only" if manual_reg else "full"
+
+        analysis_result = self.vision_agent.analyze_image(image_bytes, mode=mode, detection_mode=detection_mode)
         
         # Check for errors
         if "error" in analysis_result:
@@ -157,14 +170,26 @@ class ClaimEstimator:
                 "status": "Error"
             }
 
-        # Step 1.5: Refine Car Info using Registration Number
-        reg_no = analysis_result.get("registration_number")
-        if reg_no:
-            found_model = self._search_vehicle_info(reg_no)
-            if found_model:
-                print(f"✅ Refined Car Model: {found_model} (from Registration {reg_no})")
-                analysis_result["car_info"] = found_model
-                analysis_result["note"] = "Vehicle model refined using web search on registration number."
+        if manual_reg:
+            analysis_result["registration_number"] = manual_reg
+
+        reg_no = self._normalize_registration_number(analysis_result.get("registration_number"))
+        if not reg_no:
+            return {
+                "error": "Registration number is required. Provide a clear number plate photo or enter it manually.",
+                "damage_assessment": {"damages": [], "car_info": "Unknown", "registration_number": "Unknown"},
+                "cost_estimate": {"line_items": [], "summary": {"total_cost": 0}},
+                "status": "Error"
+            }
+
+        analysis_result["registration_number"] = reg_no
+        found_model = self._search_vehicle_info(reg_no)
+        if found_model:
+            analysis_result["car_info"] = found_model
+            analysis_result["note"] = "Vehicle model refined using registration number lookup."
+
+        if detection_mode == "conservative":
+            analysis_result["damages"] = self._filter_damages_for_evidence(analysis_result.get("damages", []))
 
         # Step 2: Calculate Costs
         estimate = self._calculate_estimate(analysis_result)
@@ -173,20 +198,76 @@ class ClaimEstimator:
         report = {
             "damage_assessment": analysis_result,
             "cost_estimate": estimate,
-            "status": "Pre-Approved" if estimate['summary']['total_cost'] < 50000 else "Needs Manual Review" 
+            "status": "Estimated"
         }
         
         return report
 
+    def analyze_claim(self, image_bytes: bytes, registration_number: str | None = None, detection_mode: str = "conservative") -> Dict[str, Any]:
+        return self._analyze_claim(image_bytes, registration_number=registration_number, detection_mode=detection_mode)
+
+    def _filter_damages_for_evidence(self, damages: list[dict]) -> list[dict]:
+        evidence_words = {
+            "dent",
+            "scratch",
+            "crack",
+            "broken",
+            "missing",
+            "misalign",
+            "deform",
+            "scuff",
+            "tear",
+            "crease",
+            "bent",
+            "shatter",
+            "paint",
+            "chip",
+        }
+        filtered = []
+        for d in damages or []:
+            desc = str(d.get("description", "") or "").lower()
+            if not desc:
+                continue
+            if any(w in desc for w in evidence_words):
+                filtered.append(d)
+        return filtered
+
     def _calculate_estimate(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         damages = analysis.get("damages", [])
         car_info = analysis.get("car_info", "Unknown Car")
+
+        def severity_rank(s: str) -> int:
+            if s == "severe":
+                return 3
+            if s == "moderate":
+                return 2
+            if s == "minor":
+                return 1
+            return 0
+
+        damages_sorted = sorted(damages, key=lambda d: severity_rank(d.get("severity", "moderate")), reverse=True)
+        max_web_lookups = 6
+        web_targets = [d.get("part") for d in damages_sorted[:max_web_lookups] if d.get("part")]
+
+        web_results: Dict[str, tuple[float | None, str]] = {}
+        if web_targets:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(4, len(web_targets))) as ex:
+                future_map = {
+                    ex.submit(self._search_part_price, part, car_info): part
+                    for part in web_targets
+                }
+                for fut in concurrent.futures.as_completed(future_map):
+                    part = future_map[fut]
+                    try:
+                        web_results[part] = fut.result()
+                    except Exception:
+                        web_results[part] = (None, "")
         
         line_items = []
         total_parts_cost = 0.0
         total_labor_hours = 0.0
         
-        for damage in damages:
+        for damage in damages_sorted:
             part_name = damage.get("part")
             severity = damage.get("severity", "moderate")
             description = damage.get("description", "")
@@ -195,16 +276,24 @@ class ClaimEstimator:
             db_entry = self.parts_db.get(part_name)
             base_labor_hours = db_entry["labor_hours"] if db_entry else 1.0
             
-            # 1. Try Web Search for Price
-            part_cost, source_url = self._search_part_price(part_name, car_info)
-            price_source = "Web Search" if part_cost else "Database Estimate"
+            part_cost = None
+            source_url = ""
+            price_source = "Database Estimate"
+
+            if part_name in web_results:
+                part_cost, source_url = web_results[part_name]
+                if part_cost is not None:
+                    price_source = "Web Search"
             
-            # 2. Fallback to DB Price (converted to INR)
+            # 2. Fallback to DB Price (converted to INR) or average estimate
             if part_cost is None:
                 if db_entry:
                     part_cost = db_entry["part_cost"] * self.usd_to_inr
+                    price_source = "Database Estimate"
                 else:
-                    part_cost = 0.0
+                    part_cost = self.avg_part_cost_inr
+                    price_source = "Average Estimate"
+                    source_url = ""
             
             # Calculate Labor
             severity_multiplier = 1.0

@@ -3,6 +3,7 @@ import os
 import json
 import random
 import time
+import io
 from typing import List, Dict, Any, Union
 
 try:
@@ -27,10 +28,22 @@ except ImportError:
     cv2 = None
     np = None
 
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
 class VisionAgent:
     def __init__(self, provider="mock", api_key=None):
         self.provider = provider
         self.api_key = api_key
+        self.model_name = None
+
+        # Handle custom model names for Ollama (e.g., "ollama:qwen3-vl:8b")
+        if self.provider.startswith("ollama:"):
+            parts = self.provider.split(":", 1)
+            self.provider = parts[0] # "ollama"
+            self.model_name = parts[1] # "qwen3-vl:8b"
         
         if self.provider == "openai" and OpenAI:
             self.client = OpenAI(api_key=self.api_key)
@@ -40,8 +53,11 @@ class VisionAgent:
             self.client = genai.GenerativeModel('gemini-1.5-flash')
         elif self.provider == "ollama" and ollama:
             self.client = ollama
+            # Default model if not specified in provider string
+            if not self.model_name:
+                self.model_name = "minicpm-v" # Fallback default
 
-    def analyze_image(self, images: Union[bytes, List[bytes]]) -> Dict[str, Any]:
+    def analyze_image(self, images: Union[bytes, List[bytes]], mode: str = "full", detection_mode: str = "conservative") -> Dict[str, Any]:
         """
         Analyzes the car damage image(s) and returns a structured assessment.
         Accepts either a single bytes object or a list of bytes objects.
@@ -51,6 +67,11 @@ class VisionAgent:
             image_list = [images]
         else:
             image_list = images
+
+        if self.provider == "ollama" and len(image_list) > 1:
+            merged = self._merge_images_for_ollama(image_list)
+            if merged is not None:
+                image_list = [merged]
 
         # Preprocess using OpenCV if available
         if cv2 and np:
@@ -64,11 +85,11 @@ class VisionAgent:
             image_list = processed_images
 
         if self.provider == "openai":
-            return self._analyze_with_openai(image_list)
+            return self._analyze_with_openai(image_list, mode, detection_mode)
         elif self.provider == "gemini":
-            return self._analyze_with_gemini(image_list)
+            return self._analyze_with_gemini(image_list, mode, detection_mode)
         elif self.provider == "ollama":
-            return self._analyze_with_ollama(image_list)
+            return self._analyze_with_ollama(image_list, mode, detection_mode)
         else:
             return self._mock_analysis(image_list)
 
@@ -83,9 +104,9 @@ class VisionAgent:
         if img is None:
             return image_bytes
 
-        # Resize if too large (max 2048px) to save tokens and bandwidth
+        
         height, width = img.shape[:2]
-        max_dim = 2048
+        max_dim = 1536
         if max(height, width) > max_dim:
             scale = max_dim / max(height, width)
             new_width = int(width * scale)
@@ -107,6 +128,36 @@ class VisionAgent:
         # Encode back to bytes
         _, buffer = cv2.imencode('.jpg', img)
         return buffer.tobytes()
+
+    def _merge_images_for_ollama(self, image_list: List[bytes]) -> bytes | None:
+        if not Image:
+            return None
+        imgs = []
+        for b in image_list[:4]:
+            try:
+                imgs.append(Image.open(io.BytesIO(b)).convert("RGB"))
+            except Exception:
+                continue
+        if not imgs:
+            return None
+
+        target_w = 640
+        target_h = 640
+        resized = []
+        for im in imgs:
+            resized.append(im.resize((target_w, target_h)))
+
+        cols = 2
+        rows = 2
+        canvas = Image.new("RGB", (cols * target_w, rows * target_h), (255, 255, 255))
+        for i, im in enumerate(resized):
+            x = (i % cols) * target_w
+            y = (i // cols) * target_h
+            canvas.paste(im, (x, y))
+
+        out = io.BytesIO()
+        canvas.save(out, format="JPEG", quality=85)
+        return out.getvalue()
 
     def _mock_analysis(self, image_list: List[bytes]) -> Dict[str, Any]:
         """
@@ -153,12 +204,17 @@ class VisionAgent:
         
         return random.choice(scenarios)
 
-    def _analyze_with_openai(self, image_list: List[bytes]) -> Dict[str, Any]:
+    def _analyze_with_openai(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:
             return {"error": "OpenAI client not initialized"}
 
         try:
-            content_list = [{"type": "text", "text": "Analyze these car damage photos. Identify all damaged parts across all images."}]
+            strict = "Only report damage if clearly visible; if unsure, do NOT include it." if detection_mode == "conservative" else "Be thorough in finding damage across images."
+            if mode == "damages_only":
+                user_text = f"Identify all damaged parts across all images. {strict}"
+            else:
+                user_text = f"Identify vehicle details if possible and list damaged parts across images. {strict}"
+            content_list = [{"type": "text", "text": user_text}]
             
             for img_bytes in image_list:
                 base64_image = base64.b64encode(img_bytes).decode('utf-8')
@@ -174,27 +230,18 @@ class VisionAgent:
                 messages=[
                     {
                         "role": "system",
-                        "content": """You are an expert car insurance adjuster. Analyze the provided images and identify damaged parts.
-                        1. Identify the car Make, Model and Year if possible.
-                        2. Identify the Registration Number (License Plate) if visible.
-                        3. Identify all damaged parts.
-                        
-                        If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
-
+                        "content": """You are an expert car insurance adjuster.
                         Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
-                        Return ONLY valid JSON. Format: 
-                        {
-                            "car_info": "Make Model Year (or Unknown)",
-                            "registration_number": "License Plate (or Unknown)",
-                            "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
-                        }"""
+                        Return ONLY valid JSON. Format:
+                        {"car_info":"Make Model Year (or Unknown)","registration_number":"License Plate (or Unknown)","damages":[{"part":"part_key","severity":"minor|moderate|severe","description":"detailed description"}]}"""
                     },
                     {
                         "role": "user",
                         "content": content_list
                     }
                 ],
-                max_tokens=1000,
+                max_tokens=600 if mode == "damages_only" else 1000,
+                temperature=0.2 if detection_mode == "conservative" else 0.7,
                 response_format={"type": "json_object"}
             )
             
@@ -203,7 +250,7 @@ class VisionAgent:
         except Exception as e:
             return {"error": str(e), "damages": []}
 
-    def _analyze_with_gemini(self, image_list: List[bytes]) -> Dict[str, Any]:
+    def _analyze_with_gemini(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:
             return {"error": "Gemini client not initialized"}
 
@@ -211,24 +258,22 @@ class VisionAgent:
             # Prepare content for Gemini
             # Gemini accepts list of [prompt, image1, image2, ...]
             
-            prompt = """
-            You are an expert car insurance adjuster. Analyze these car damage photos.
-            1. Identify the car Make, Model and Year if possible (e.g. "Toyota Camry 2022"). If unknown, say "Unknown Car".
-            2. Identify the Registration Number (License Plate) if visible.
-            3. Identify all damaged parts across all images.
-            
-            If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
-            
-            Supported parts keys: 
-            bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
-            
-            Return ONLY valid JSON. Format: 
-            {
-                "car_info": "Make Model Year (or Unknown)",
-                "registration_number": "License Plate (or Unknown)",
-                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]
-            }
-            """
+            strict = "Only report damage if clearly visible; if unsure, return an empty damages list." if detection_mode == "conservative" else "Be thorough in detecting damage."
+            if mode == "damages_only":
+                prompt = """
+                Identify all damaged parts across all images. Return ONLY valid JSON.
+                Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+                {"car_info":"Unknown","registration_number":"Unknown","damages":[{"part":"part_key","severity":"minor|moderate|severe","description":"detailed description"}]}
+                """
+            else:
+                prompt = """
+                Identify the car Make/Model/Year if possible, the license plate if visible, and all damaged parts.
+                Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+                Return ONLY valid JSON.
+                {"car_info":"Make Model Year (or Unknown)","registration_number":"License Plate (or Unknown)","damages":[{"part":"part_key","severity":"minor|moderate|severe","description":"detailed description"}]}
+                """
+
+            prompt = f"{prompt}\n\n{strict}" 
             
             content = [prompt]
             
@@ -256,7 +301,7 @@ class VisionAgent:
         except Exception as e:
             return {"error": str(e), "damages": []}
 
-    def _analyze_with_ollama(self, image_list: List[bytes]) -> Dict[str, Any]:
+    def _analyze_with_ollama(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:
             return {"error": "Ollama client not initialized"}
             
@@ -268,35 +313,43 @@ class VisionAgent:
             # LLaVA expects 'images' as a list of paths or bytes
             # We will use the first image for now as LLaVA context window is limited
             
-            prompt = """
-            Analyze these car damage images to extract vehicle details and damage information for cost estimation.
-            
-            1. IDENTIFY VEHICLE:
-               - Make, Model, Year (e.g., "Maruti Swift 2022")
-               - Registration Number / License Plate (Check all images carefully)
-            
-            2. DETECT DAMAGES:
-               - List EVERY damaged part.
-               - Assess severity (minor, moderate, severe).
-               - Provide a detailed description.
-            
-            If there are NO DAMAGES and the car is in good condition, return an empty "damages" list.
-            
-            Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
-            
-            Return ONLY valid JSON. Format: 
-            {
-                "car_info": "Make Model Year (or Unknown)",
-                "registration_number": "License Plate (or Unknown)",
-                "damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "detailed description"}]
-            }
-            """
+            strict = "Only report damage if clearly visible; if unsure, return an empty damages list." if detection_mode == "conservative" else "Be thorough in detecting damage."
+            if mode == "damages_only":
+                prompt = """
+                You are an expert car insurance adjuster.
+                Identify all damaged parts across all images.
+
+                IMPORTANT:
+                - Look VERY closely for damage. If the car is crushed / major impact, mark relevant parts as "severe".
+                - Only return empty damages if the car is clearly undamaged.
+
+                Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+
+                Return ONLY valid JSON:
+                {"car_info":"Unknown","registration_number":"Unknown","damages":[{"part":"part_key","severity":"minor|moderate|severe","description":"detailed description"}]}
+                """
+            else:
+                prompt = """
+                You are an expert car insurance adjuster.
+                Read the license plate if visible in any image and identify all damaged parts.
+
+                IMPORTANT:
+                - You MUST try to read the license plate from ANY image (front or rear). If not readable set "registration_number" to "Unknown".
+                - Look VERY closely for damage. If the car is crushed / major impact, mark relevant parts as "severe".
+
+                Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+
+                Return ONLY valid JSON:
+                {"car_info":"Make Model Year (or Unknown)","registration_number":"License Plate (or Unknown)","damages":[{"part":"part_key","severity":"minor|moderate|severe","description":"detailed description"}]}
+                """
+
+            prompt = f"{prompt}\n\n{strict}" 
             
             # Convert bytes to base64 for Ollama
             # Ollama Python library handles bytes directly for 'images'
             
             response = self.client.chat(
-                model='minicpm-v',
+                model=self.model_name,
                 messages=[
                   {
                     'role': 'user',
@@ -308,16 +361,11 @@ class VisionAgent:
             )
             
             content = response['message']['content']
-            
-            # Clean content for JSON parsing
             content = content.strip()
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
-            content = content.strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0].strip()
             
             return json.loads(content)
             
