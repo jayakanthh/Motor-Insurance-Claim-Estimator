@@ -33,6 +33,10 @@ def process_image(uploaded_file, estimator):
                 display_results(result)
 
 def display_results(result):
+    if "error" in result:
+        st.error(f"Error: {result['error']}")
+        return
+
     col1, col2 = st.columns(2)
     
     with col1:
@@ -71,8 +75,17 @@ def main():
     render_header()
     api_key, model_choice = render_sidebar()
     
+    # Map choice to provider string
+    provider_map = {
+        "Mock (Demo)": "mock",
+        "GPT-4o": "openai",
+        "Gemini 1.5 Pro": "gemini"
+    }
+    provider = provider_map.get(model_choice, "mock")
+    
     # Initialize Core Logic
-    estimator = ClaimEstimator()
+    # We re-initialize on every run which is fine for Streamlit
+    estimator = ClaimEstimator(provider=provider, api_key=api_key)
     
     # File Upload
     uploaded_file = st.file_uploader("Upload Car Damage Photo", type=['jpg', 'png', 'jpeg'])

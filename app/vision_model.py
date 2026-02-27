@@ -5,11 +5,21 @@ import random
 import time
 from typing import List, Dict, Any
 
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
 class VisionAgent:
-    def __init__(self, provider="mock"):
+    def __init__(self, provider="mock", api_key=None):
         self.provider = provider
-        # Placeholder for API clients
-        self.client = None 
+        self.api_key = api_key
+        
+        if self.provider == "openai" and OpenAI:
+            self.client = OpenAI(api_key=self.api_key)
+        elif self.provider == "gemini":
+            # self.client = genai.GenerativeModel('gemini-1.5-pro')
+            pass
 
     def analyze_image(self, image_bytes: bytes) -> Dict[str, Any]:
         """
@@ -56,11 +66,43 @@ class VisionAgent:
         return random.choice(scenarios)
 
     def _analyze_with_openai(self, image_bytes: bytes) -> Dict[str, Any]:
-        # TODO: Implement OpenAI GPT-4o integration
-        # encode image to base64
-        # prompt = "Identify the car parts damaged in this image and assess severity. Return JSON."
-        pass
+        if not self.client:
+            return {"error": "OpenAI client not initialized"}
+
+        try:
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+            
+            response = self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are an expert car insurance adjuster. Analyze the image and identify damaged parts.
+                        Supported parts keys: bumper_front, bumper_rear, fender_left, fender_right, door_front_left, door_front_right, door_rear_left, door_rear_right, hood, trunk_lid, headlight_left, headlight_right, taillight_left, taillight_right, windshield, side_mirror_left, side_mirror_right.
+                        Return ONLY valid JSON. Format: {"damages": [{"part": "part_key", "severity": "minor|moderate|severe", "description": "brief description"}]}"""
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Analyze this car damage."},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                max_tokens=500,
+                response_format={"type": "json_object"}
+            )
+            
+            content = response.choices[0].message.content
+            return json.loads(content)
+        except Exception as e:
+            return {"error": str(e), "damages": []}
 
     def _analyze_with_gemini(self, image_bytes: bytes) -> Dict[str, Any]:
-        # TODO: Implement Google Gemini integration
-        pass
+        # Placeholder for Gemini implementation
+        return self._mock_analysis(image_bytes)

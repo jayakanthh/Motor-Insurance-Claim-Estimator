@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from .vision_model import VisionAgent
 
 class ClaimEstimator:
-    def __init__(self, parts_db_path: str = "data/parts_db.json", labor_rate: float = 75.0):
+    def __init__(self, parts_db_path: str = "data/parts_db.json", labor_rate: float = 75.0, provider: str = "mock", api_key: str = None):
         # Determine path relative to this file
         base_path = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(base_path)
@@ -12,7 +12,7 @@ class ClaimEstimator:
         
         self.parts_db = self._load_parts_db(full_path)
         self.labor_rate = labor_rate
-        self.vision_agent = VisionAgent()
+        self.vision_agent = VisionAgent(provider=provider, api_key=api_key)
 
     def _load_parts_db(self, path: str) -> Dict[str, Any]:
         try:
@@ -29,6 +29,15 @@ class ClaimEstimator:
         # Step 1: Analyze Image
         analysis_result = self.vision_agent.analyze_image(image_bytes)
         
+        # Check for errors
+        if "error" in analysis_result:
+            return {
+                "error": analysis_result["error"],
+                "damage_assessment": {"damages": []},
+                "cost_estimate": {"line_items": [], "summary": {"total_cost": 0}},
+                "status": "Error"
+            }
+
         # Step 2: Calculate Costs
         estimate = self._calculate_estimate(analysis_result)
         
