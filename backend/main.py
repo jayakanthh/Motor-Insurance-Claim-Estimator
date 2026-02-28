@@ -23,16 +23,23 @@ from app.pdf_export import build_estimate_pdf
 app = FastAPI(title="Motor Insurance Claim Estimator API", version="1.0.0")
 
 # CORS configuration
-origins = [
-    "http://localhost:5173",  # React default port
-    "http://localhost:3000",
-    "*"
+cors_origins_env = [
+    o.strip()
+    for o in (os.getenv("CORS_ORIGINS") or "").split(",")
+    if o.strip()
 ]
+origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    *cors_origins_env,
+]
+origin_regex = os.getenv("CORS_ORIGIN_REGEX") or r"https://.*\.vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,
+    allow_origin_regex=origin_regex,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

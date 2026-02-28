@@ -19,7 +19,10 @@ import {
 import { Link } from 'react-router-dom';
 
 export default function Estimate() {
-  const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:8000`;
+  const envApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  const API_BASE_URL = envApiBaseUrl
+    ? envApiBaseUrl.replace(/\/$/, '')
+    : `${window.location.protocol}//${window.location.hostname}:8000`;
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
 
   const toggleTheme = () => {
@@ -147,7 +150,7 @@ export default function Estimate() {
       }
     };
     fetchProviders();
-  }, []);
+  }, [API_BASE_URL]);
 
   useEffect(() => {
     setApiKeyInvalid(false);
@@ -165,7 +168,7 @@ export default function Estimate() {
     } else {
       setRememberApiKey(false);
     }
-  }, [config.provider]);
+  }, [config.provider, providerUsesApiKeyField]);
 
   const resetEstimation = () => {
     setFiles({ front: null, back: null, left: null, right: null, extras: [] });
