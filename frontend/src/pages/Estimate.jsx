@@ -20,9 +20,15 @@ import { Link } from 'react-router-dom';
 
 export default function Estimate() {
   const envApiBaseUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
-  const API_BASE_URL = envApiBaseUrl
-    ? envApiBaseUrl.replace(/\/$/, '')
-    : `${window.location.protocol}//${window.location.hostname}:8000`;
+  const inferredProdBase =
+    (typeof window !== 'undefined' && /\.vercel\.app$/.test(window.location.hostname))
+      ? 'https://backend-swart-rho-74.vercel.app'
+      : '';
+  const API_BASE_URL = (envApiBaseUrl || inferredProdBase)
+    ? (envApiBaseUrl || inferredProdBase).replace(/\/$/, '')
+    : (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `${window.location.protocol}//${window.location.hostname}:8000`
+      : '';
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
 
   const toggleTheme = () => {
@@ -118,6 +124,21 @@ export default function Estimate() {
   ]);
   const [providersLoading, setProvidersLoading] = useState(false);
   const [providersError, setProvidersError] = useState(null);
+  const [backendHealth, setBackendHealth] = useState({ status: 'checking', message: '' });
+
+  useEffect(() => {
+    const checkHealth = async () => {
+      setBackendHealth({ status: 'checking', message: '' });
+      try {
+        await axios.get(`${API_BASE_URL}/api/health`, { timeout: 2500 });
+        setBackendHealth({ status: 'up', message: '' });
+      } catch (err) {
+        const parsed = normalizeApiError(err);
+        setBackendHealth({ status: 'down', message: parsed?.message || 'Not reachable' });
+      }
+    };
+    checkHealth();
+  }, [API_BASE_URL]);
 
   // Fetch available providers on mount
   useEffect(() => {
@@ -479,6 +500,19 @@ export default function Estimate() {
                   {providersError && (
                     <div className="mt-2 text-xs text-red-600">{providersError}</div>
                   )}
+                  <div className={`mt-2 text-xs ${
+                    backendHealth.status === 'up'
+                      ? 'text-green-700 dark:text-green-400'
+                      : backendHealth.status === 'down'
+                        ? 'text-red-700 dark:text-red-400'
+                        : 'text-gray-600 dark:text-slate-400'
+                  }`}>
+                    {backendHealth.status === 'up'
+                      ? `API: Connected (${API_BASE_URL || window.location.origin})`
+                      : backendHealth.status === 'down'
+                        ? `API: Not reachable (${API_BASE_URL || window.location.origin})`
+                        : `API: Checking... (${API_BASE_URL || window.location.origin})`}
+                  </div>
                 </div>
 
                 <div>

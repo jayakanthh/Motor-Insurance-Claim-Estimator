@@ -3,6 +3,7 @@
     "VITE_API_BASE_URL": "https://backend-swart-rho-74.vercel.app"
   },
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://backend-swart-rho-74.vercel.app/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
