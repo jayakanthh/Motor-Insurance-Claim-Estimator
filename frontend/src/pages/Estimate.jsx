@@ -127,20 +127,7 @@ export default function Estimate() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/providers`, { timeout: 2500 });
         if (response.data.providers) {
-          const fetchedProviders = response.data.providers;
-          setAvailableProviders(fetchedProviders);
-          
-          // Auto-select a good default if available
-          const ollamaModels = fetchedProviders.filter(p => p.id.startsWith('ollama:'));
-          if (ollamaModels.length > 0) {
-            const preferred = ollamaModels.find(p => p.id.includes('llava:13b'))
-              || ollamaModels.find(p => p.id.includes('minicpm-v'));
-            if (preferred) {
-                setConfig(prev => ({ ...prev, provider: preferred.id }));
-            } else {
-                setConfig(prev => ({ ...prev, provider: ollamaModels[0].id }));
-            }
-          }
+          setAvailableProviders(response.data.providers);
         }
       } catch (err) {
         console.error("Failed to fetch providers:", err);
@@ -256,15 +243,63 @@ export default function Estimate() {
     setLoading(true);
     setError(null);
     
+    // Helper to compress images client-side for faster/safer uploads on Vercel
+    const compressImage = async (file, { maxDim = 1600, quality = 0.75 } = {}) => {
+      try {
+        if (!file || !(file instanceof Blob)) return file;
+        // Skip compression for very small files
+        if (file.size <= 300 * 1024) return file;
+        const createImage = (src) =>
+          new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+          });
+        const src = URL.createObjectURL(file);
+        const img = await createImage(src);
+        URL.revokeObjectURL(src);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const { naturalWidth: w, naturalHeight: h } = img;
+        const scale = Math.min(1, maxDim / Math.max(w, h));
+        const tw = Math.max(1, Math.round(w * scale));
+        const th = Math.max(1, Math.round(h * scale));
+        canvas.width = tw;
+        canvas.height = th;
+        ctx.drawImage(img, 0, 0, tw, th);
+        const blob = await new Promise((resolve) =>
+          canvas.toBlob(
+            (b) => resolve(b || file),
+            'image/jpeg',
+            quality
+          )
+        );
+        return blob || file;
+      } catch {
+        return file;
+      }
+    };
+
     const formData = new FormData();
-    formData.append('front', files.front);
-    formData.append('back', files.back);
-    formData.append('left', files.left);
-    formData.append('right', files.right);
+    // Compress required images
+    const [cFront, cBack, cLeft, cRight] = await Promise.all([
+      compressImage(files.front),
+      compressImage(files.back),
+      compressImage(files.left),
+      compressImage(files.right),
+    ]);
+    formData.append('front', new File([cFront], files.front.name, { type: 'image/jpeg' }));
+    formData.append('back', new File([cBack], files.back.name, { type: 'image/jpeg' }));
+    formData.append('left', new File([cLeft], files.left.name, { type: 'image/jpeg' }));
+    formData.append('right', new File([cRight], files.right.name, { type: 'image/jpeg' }));
     
-    files.extras.forEach(file => {
-      formData.append('extra', file);
-    });
+    // Compress extras (limit to 6 to keep payload small)
+    const extraFiles = files.extras.slice(0, 6);
+    for (const f of extraFiles) {
+      const c = await compressImage(f);
+      formData.append('extra', new File([c], f.name, { type: 'image/jpeg' }));
+    }
 
     formData.append('provider', config.provider);
     if (config.apiKey) formData.append('api_key', config.apiKey);
@@ -275,13 +310,20 @@ export default function Estimate() {
       const response = await axios.post(`${API_BASE_URL}/api/analyze-claim`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 120000
       });
       setResult(response.data.data);
     } catch (err) {
       console.error(err);
       const parsed = normalizeApiError(err);
-      setError(parsed.message || 'An error occurred during analysis. Please try again.');
+      if (err?.response?.status === 413) {
+        setError('Images are too large for the server. Please upload smaller photos or let us compress them automatically.');
+      } else if (parsed?.message) {
+        setError(parsed.message);
+      } else {
+        setError('An error occurred during analysis. Please try again.');
+      }
       if (parsed.status === 401 || parsed.errorType === 'invalid_api_key') {
         setApiKeyInvalid(true);
       }

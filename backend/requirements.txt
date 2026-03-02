@@ -4,12 +4,6 @@ python-multipart
 openai
 google-generativeai
 python-dotenv
-pandas
 requests
 beautifulsoup4
-opencv-python-headless
-pillow
-numpy
 reportlab
-ollama
-duckduckgo-search

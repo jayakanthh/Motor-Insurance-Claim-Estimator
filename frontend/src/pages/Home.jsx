@@ -131,7 +131,7 @@ export default function Home() {
       {/* Features Grid */}
       <div id="features" className="max-w-7xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Auto Audit?</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Claim ex?</h2>
           <p className="text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">We combine computer vision with insurance expertise to deliver a fast and transparent estimation experience.</p>
         </div>
         

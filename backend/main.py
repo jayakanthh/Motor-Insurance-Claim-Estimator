@@ -59,36 +59,14 @@ async def health_check():
 @app.get("/api/providers")
 async def get_providers():
     """
-    Returns a list of available AI providers and models.
+    Returns a list of available AI providers.
+    Always exposes cloud providers; actual API key can be provided by the client.
     """
     providers = [
         {"id": "mock", "name": "Mock (Demo Mode)"},
         {"id": "openai", "name": "OpenAI GPT-4o"},
-        {"id": "gemini", "name": "Gemini 1.5 Pro"}
+        {"id": "gemini", "name": "Gemini 1.5 Pro"},
     ]
-    
-    try:
-        cp = subprocess.run(
-            ["ollama", "list"],
-            capture_output=True,
-            text=True,
-            timeout=2,
-        )
-        if cp.returncode == 0:
-            lines = [ln.strip() for ln in (cp.stdout or "").splitlines() if ln.strip()]
-            if len(lines) > 1:
-                for ln in lines[1:]:
-                    parts = ln.split()
-                    if not parts:
-                        continue
-                    name = parts[0]
-                    providers.append({
-                        "id": f"ollama:{name}",
-                        "name": f"Ollama ({name})",
-                    })
-    except Exception as e:
-        print(f"Warning: Could not list Ollama models: {e}")
-
     return {"providers": providers}
 
 @app.post("/api/analyze-claim")

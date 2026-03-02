@@ -1,6 +1,8 @@
 {
+  "env": {
+    "VITE_API_BASE_URL": "https://backend-swart-rho-74.vercel.app"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
-
