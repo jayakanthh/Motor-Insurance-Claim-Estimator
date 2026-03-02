@@ -1,4 +1,9 @@
 {
+  "name": "motor-insurance-claim-estimator-root",
+  "private": true,
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build"
+  },
   "dependencies": {
     "vercel": "^50.25.3"
   }

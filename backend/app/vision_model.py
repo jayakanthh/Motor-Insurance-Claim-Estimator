@@ -75,6 +75,7 @@ class VisionAgent:
         Accepts either a single bytes object or a list of bytes objects.
         """
         # Normalize input to list
+        image_list = images if isinstance(images, list) else [images]
         if self.provider == "openai":
             return self._analyze_with_openai(image_list, mode, detection_mode)
         elif self.provider == "gemini":
