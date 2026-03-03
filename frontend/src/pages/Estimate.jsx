@@ -522,12 +522,12 @@ export default function Estimate() {
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">AI Provider</label>
                   <select
                     className={`w-full rounded-lg border-2 p-2.5 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:ring-2 transition-colors dark:[color-scheme:dark] ${backendHealth.status === 'down'
-                        ? 'border-yellow-400 dark:border-yellow-500 focus:ring-yellow-400'
-                        : apiKeyStatus === 'valid'
-                          ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
-                          : apiKeyStatus === 'invalid'
-                            ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
-                            : 'border-gray-300 dark:border-slate-700 focus:ring-blue-500'
+                      ? 'border-yellow-400 dark:border-yellow-500 focus:ring-yellow-400'
+                      : apiKeyStatus === 'valid'
+                        ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
+                        : apiKeyStatus === 'invalid'
+                          ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
+                          : 'border-gray-300 dark:border-slate-700 focus:ring-blue-500'
                       }`}
                     value={config.provider}
                     onChange={(e) => setConfig({ ...config, provider: e.target.value })}
@@ -541,18 +541,6 @@ export default function Estimate() {
                     <div className="mt-2 text-xs text-red-600">{providersError}</div>
                   )}
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Registration Number (if plate not readable)</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-lg border-gray-300 dark:border-slate-700 border p-2.5 bg-white dark:bg-slate-950 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g. KA01AB1234"
-                    value={config.registrationNumber}
-                    onChange={(e) => setConfig({ ...config, registrationNumber: e.target.value })}
-                  />
-                </div>
-
 
                 {providerUsesApiKeyField && (
                   <div>
@@ -600,6 +588,18 @@ export default function Estimate() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Registration Number (if plate not readable)</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-lg border-gray-300 dark:border-slate-700 border p-2.5 bg-white dark:bg-slate-950 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. KA01AB1234"
+                    value={config.registrationNumber}
+                    onChange={(e) => setConfig({ ...config, registrationNumber: e.target.value })}
+                  />
+                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Labor Rate (₹/hr)</label>
