@@ -20,7 +20,7 @@ export default function Home() {
           <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-blue-200/55 via-indigo-100/55 to-violet-100/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
             <div className="flex items-center justify-between px-4 py-3">
               <Link to="/" className="flex items-center gap-2">
-                <img src="/logo.png" alt="ClaimEX" className="h-9 w-9 rounded-full object-cover" />
+                <img src="/logo.png" alt="ClaimEX" className="h-16 w-auto object-contain ml-2 -my-3" />
               </Link>
 
               <div className="hidden md:flex items-center gap-8 text-gray-700 dark:text-slate-200 font-medium">
