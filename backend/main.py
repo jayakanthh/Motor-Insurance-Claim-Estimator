@@ -68,6 +68,32 @@ async def get_providers():
     ]
     return {"providers": providers}
 
+class ValidateKeyRequest(BaseModel):
+    provider: str
+    api_key: str
+
+@app.post("/api/validate-key")
+async def validate_key(req: ValidateKeyRequest):
+    """
+    Validates an API key by making a lightweight test call to the provider.
+    """
+    try:
+        if req.provider == "openai":
+            from openai import OpenAI
+            client = OpenAI(api_key=req.api_key)
+            # Minimal call to check key validity
+            client.models.list()
+            return {"valid": True}
+        elif req.provider == "gemini":
+            import google.generativeai as genai
+            genai.configure(api_key=req.api_key)
+            list(genai.list_models())
+            return {"valid": True}
+        else:
+            return {"valid": False, "error": f"Unknown provider: {req.provider}"}
+    except Exception as e:
+        return {"valid": False, "error": str(e)}
+
 @app.post("/api/analyze-claim")
 async def analyze_claim(
     front: UploadFile = File(...),
