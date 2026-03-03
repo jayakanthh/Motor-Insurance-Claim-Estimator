@@ -12,7 +12,7 @@ except ImportError:
     DDGS = None
 
 class ClaimEstimator:
-    def __init__(self, parts_db_path: str = "data/parts_db.json", labor_rate: float = 500.0, provider: str = "mock", api_key: str = None):
+    def __init__(self, parts_db_path: str = "data/parts_db.json", labor_rate: float = 500.0, provider: str = "gemini", api_key: str = None):
         # labor_rate in INR (approx 500 INR/hr)
         
         # Determine path relative to this file

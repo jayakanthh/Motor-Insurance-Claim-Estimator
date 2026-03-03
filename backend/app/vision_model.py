@@ -1,8 +1,6 @@
 import base64
 import os
 import json
-import random
-import time
 import io
 from typing import List, Dict, Any, Union
 
@@ -22,7 +20,7 @@ except ImportError:
     Image = None
 
 class VisionAgent:
-    def __init__(self, provider="mock", api_key=None):
+    def __init__(self, provider="gemini", api_key=None):
         self.provider = provider
         self.api_key = api_key
         self.model_name = None
@@ -81,7 +79,7 @@ class VisionAgent:
         elif self.provider == "gemini":
             return self._analyze_with_gemini(image_list, mode, detection_mode)
         else:
-            return self._mock_analysis(image_list)
+            return {"error": f"Unsupported provider: {self.provider}", "damages": []}
 
     def _is_invalid_api_key_error(self, err: str) -> bool:
         s = (err or "").lower()
@@ -107,52 +105,7 @@ class VisionAgent:
             "damages": [],
         }
 
-    def _mock_analysis(self, image_list: List[bytes]) -> Dict[str, Any]:
-        """
-        Simulates AI analysis for demo purposes.
-        """
-        time.sleep(2)  # Simulate processing time
-        
-        # Mock damage scenarios
-        scenarios = [
-            {
-                "car_info": "Toyota Camry 2020",
-                "registration_number": "KA-01-AB-1234",
-                "damages": [
-                    {"part": "bumper_front", "severity": "moderate", "description": "Dent and scratch on the left side"},
-                    {"part": "headlight_left", "severity": "severe", "description": "Cracked lens"}
-                ],
-                "confidence": 0.95
-            },
-            {
-                "car_info": "Honda Civic 2019",
-                "registration_number": "MH-02-XY-9876",
-                "damages": [
-                    {"part": "door_front_right", "severity": "minor", "description": "Deep scratch"},
-                    {"part": "side_mirror_right", "severity": "moderate", "description": "Broken housing"}
-                ],
-                "confidence": 0.88
-            },
-            {
-                "car_info": "Hyundai Creta 2021",
-                "registration_number": "DL-10-CD-5678",
-                "damages": [
-                    {"part": "bumper_rear", "severity": "severe", "description": "Major impact damage, detached"},
-                    {"part": "taillight_left", "severity": "moderate", "description": "Cracked"}
-                ],
-                "confidence": 0.92
-            },
-            {
-                "car_info": "Maruti Suzuki Swift 2023",
-                "registration_number": "TS-09-EF-4321",
-                "damages": [
-                    {"part": "bumper_front", "severity": "minor", "description": "Light scuff marks visible"}
-                ],
-                "confidence": 0.90
-            }
-        ]
-        
-        return random.choice(scenarios)
+
 
     def _analyze_with_openai(self, image_list: List[bytes], mode: str, detection_mode: str) -> Dict[str, Any]:
         if not self.client:

@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
-import { 
-  CheckCircleIcon, 
+import {
+  CheckCircleIcon,
   ExclamationCircleIcon,
   CurrencyDollarIcon,
   WrenchScrewdriverIcon,
@@ -52,14 +52,14 @@ export default function Estimate() {
     right: null,
     extras: []
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [apiKeyInvalid, setApiKeyInvalid] = useState(false);
   const [rememberApiKey, setRememberApiKey] = useState(false);
   const [config, setConfig] = useState({
-    provider: 'mock',
+    provider: 'gemini',
     apiKey: '',
     registrationNumber: '',
     laborRate: 500
@@ -118,7 +118,6 @@ export default function Estimate() {
     return { status, message: 'Request failed. Please try again.', errorType: null };
   };
   const [availableProviders, setAvailableProviders] = useState([
-    { id: 'mock', name: 'Mock (Demo Mode)' },
     { id: 'openai', name: 'OpenAI GPT-4o' },
     { id: 'gemini', name: 'Gemini 1.5 Pro' }
   ]);
@@ -236,7 +235,7 @@ export default function Estimate() {
       setFiles(prev => ({ ...prev, [type]: file }));
       setPreviews(prev => ({ ...prev, [type]: URL.createObjectURL(file) }));
     }
-    
+
     // Reset results on new upload
     setResult(null);
     setError(null);
@@ -263,7 +262,7 @@ export default function Estimate() {
 
     setLoading(true);
     setError(null);
-    
+
     // Helper to compress images client-side for faster/safer uploads on Vercel
     const compressImage = async (file, { maxDim = 1600, quality = 0.75 } = {}) => {
       try {
@@ -314,7 +313,7 @@ export default function Estimate() {
     formData.append('back', new File([cBack], files.back.name, { type: 'image/jpeg' }));
     formData.append('left', new File([cLeft], files.left.name, { type: 'image/jpeg' }));
     formData.append('right', new File([cRight], files.right.name, { type: 'image/jpeg' }));
-    
+
     // Compress extras (limit to 6 to keep payload small)
     const extraFiles = files.extras.slice(0, 6);
     for (const f of extraFiles) {
@@ -369,9 +368,9 @@ export default function Estimate() {
         <label className="block text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
-        
-        <div 
-          {...getRootProps()} 
+
+        <div
+          {...getRootProps()}
           className={`
             border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all h-48 flex flex-col items-center justify-center relative overflow-hidden
             ${isDragActive ? 'border-blue-500 bg-blue-50 dark:bg-slate-900/60' : 'border-gray-300 dark:border-slate-700 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-slate-900/50'}
@@ -379,7 +378,7 @@ export default function Estimate() {
           `}
         >
           <input {...getInputProps()} />
-          
+
           {previewUrl ? (
             <img src={previewUrl} alt={label} className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
           ) : (
@@ -390,7 +389,7 @@ export default function Estimate() {
               </p>
             </div>
           )}
-          
+
           {hasFile && type !== 'extras' && (
             <div className="absolute top-2 right-2 bg-white dark:bg-slate-950 rounded-full p-1 shadow-md border border-transparent dark:border-slate-800">
               <CheckCircleIcon className="h-5 w-5 text-green-600" />
@@ -404,7 +403,7 @@ export default function Estimate() {
             {previews.extras.map((url, idx) => (
               <div key={idx} className="relative aspect-square rounded-lg overflow-hidden group/item">
                 <img src={url} alt={`Extra ${idx}`} className="w-full h-full object-cover" />
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); removeExtra(idx); }}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/item:opacity-100 transition-opacity"
                 >
@@ -465,7 +464,7 @@ export default function Estimate() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         <div className="grid lg:grid-cols-3 gap-8">
-          
+
           {/* Left Column: Input Form */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -473,7 +472,7 @@ export default function Estimate() {
             transition={{ duration: 0.35 }}
             className="lg:col-span-1 space-y-6"
           >
-            
+
             {/* Configuration Card */}
             <motion.div
               whileHover={{ y: -2 }}
@@ -487,10 +486,10 @@ export default function Estimate() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">AI Provider</label>
-                  <select 
+                  <select
                     className="w-full rounded-lg border-gray-300 dark:border-slate-700 border p-2.5 bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow dark:[color-scheme:dark]"
                     value={config.provider}
-                    onChange={(e) => setConfig({...config, provider: e.target.value})}
+                    onChange={(e) => setConfig({ ...config, provider: e.target.value })}
                     disabled={providersLoading}
                   >
                     {availableProviders.map(p => (
@@ -500,13 +499,12 @@ export default function Estimate() {
                   {providersError && (
                     <div className="mt-2 text-xs text-red-600">{providersError}</div>
                   )}
-                  <div className={`mt-2 text-xs ${
-                    backendHealth.status === 'up'
+                  <div className={`mt-2 text-xs ${backendHealth.status === 'up'
                       ? 'text-green-700 dark:text-green-400'
                       : backendHealth.status === 'down'
                         ? 'text-red-700 dark:text-red-400'
                         : 'text-gray-600 dark:text-slate-400'
-                  }`}>
+                    }`}>
                     {backendHealth.status === 'up'
                       ? `API: Connected (${API_BASE_URL || window.location.origin})`
                       : backendHealth.status === 'down'
@@ -532,9 +530,8 @@ export default function Estimate() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">API Key</label>
                     <input
                       type="password"
-                      className={`w-full rounded-lg border border-gray-300 dark:border-slate-700 p-2.5 bg-white dark:bg-slate-950 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 ${
-                        apiKeyInvalid ? 'border-red-400 dark:border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'
-                      }`}
+                      className={`w-full rounded-lg border border-gray-300 dark:border-slate-700 p-2.5 bg-white dark:bg-slate-950 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-slate-500 focus:ring-2 ${apiKeyInvalid ? 'border-red-400 dark:border-red-500 focus:ring-red-500' : 'focus:ring-blue-500'
+                        }`}
                       placeholder={`Enter ${config.provider.toUpperCase()} API Key`}
                       value={config.apiKey}
                       onChange={(e) => {
@@ -574,16 +571,16 @@ export default function Estimate() {
                     </div>
                   </div>
                 )}
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Labor Rate (₹/hr)</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2.5 text-gray-500 dark:text-slate-400">₹</span>
-                    <input 
+                    <input
                       type="number"
                       className="w-full rounded-lg border-gray-300 dark:border-slate-700 border p-2.5 pl-8 bg-white dark:bg-slate-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                       value={config.laborRate}
-                      onChange={(e) => setConfig({...config, laborRate: parseFloat(e.target.value)})}
+                      onChange={(e) => setConfig({ ...config, laborRate: parseFloat(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -612,7 +609,7 @@ export default function Estimate() {
             transition={{ duration: 0.35, delay: 0.05 }}
             className="lg:col-span-2 space-y-8"
           >
-            
+
             {/* Upload Grid */}
             <motion.div
               whileHover={{ y: -2 }}
@@ -620,13 +617,13 @@ export default function Estimate() {
               className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800"
             >
               <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Vehicle Photos</h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <UploadBox type="front" label="Front View" icon={PhotoIcon} required />
                 <UploadBox type="back" label="Back View" icon={PhotoIcon} required />
                 <UploadBox type="left" label="Left Side" icon={PhotoIcon} required />
                 <UploadBox type="right" label="Right Side" icon={PhotoIcon} required />
-                
+
                 <UploadBox type="extras" label="Extra Photos (Optional close-ups)" icon={PlusIcon} />
               </div>
 
@@ -637,15 +634,15 @@ export default function Estimate() {
                     {error}
                   </div>
                 )}
-                
+
                 <motion.button
                   onClick={analyzeClaim}
                   disabled={loading}
                   whileTap={{ scale: 0.98 }}
                   className={`
                     w-full md:w-auto min-w-[200px] py-4 px-8 rounded-xl font-bold text-lg shadow-lg transition-all duration-300 flex items-center justify-center gap-2
-                    ${loading 
-                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-300 cursor-not-allowed shadow-none' 
+                    ${loading
+                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-300 cursor-not-allowed shadow-none'
                       : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-blue-200 hover:-translate-y-0.5'}
                   `}
                 >
@@ -729,11 +726,10 @@ export default function Estimate() {
                             <span className="font-bold text-gray-900 dark:text-white capitalize">
                               {damage?.part?.replace(/_/g, ' ') || 'Unknown Part'}
                             </span>
-                            <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize ${
-                              damage.severity === 'severe' ? 'bg-red-100 text-red-700' :
-                              damage.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
-                              'bg-green-100 text-green-700'
-                            }`}>
+                            <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize ${damage.severity === 'severe' ? 'bg-red-100 text-red-700' :
+                                damage.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-green-100 text-green-700'
+                              }`}>
                               {damage.severity || 'moderate'}
                             </span>
                           </div>
@@ -752,7 +748,7 @@ export default function Estimate() {
                       <CurrencyDollarIcon className="h-5 w-5 text-blue-600" />
                       <span className="text-gray-900 dark:text-white">Cost Summary</span>
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-slate-950 rounded-lg border border-gray-100 dark:border-slate-800">
                         <span className="text-gray-600 dark:text-slate-300">Parts Total</span>
@@ -768,7 +764,7 @@ export default function Estimate() {
                         <span className="text-gray-600 dark:text-slate-300">Tax (18% GST)</span>
                         <span className="font-semibold text-gray-900 dark:text-white">{formatCurrency(result?.cost_estimate?.summary?.tax)}</span>
                       </div>
-                      
+
                       <div className="pt-4 mt-4 border-t border-gray-100 dark:border-slate-800">
                         <div className="flex justify-between items-end">
                           <span className="text-gray-500 dark:text-slate-400 font-medium">Grand Total</span>
@@ -805,11 +801,10 @@ export default function Estimate() {
                               {item.part?.replace(/_/g, ' ') || 'Unknown'}
                             </td>
                             <td className="px-6 py-4">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${
-                                item.severity === 'severe' ? 'bg-red-50 text-red-700' :
-                                item.severity === 'moderate' ? 'bg-orange-50 text-orange-700' :
-                                'bg-green-50 text-green-700'
-                              }`}>
+                              <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${item.severity === 'severe' ? 'bg-red-50 text-red-700' :
+                                  item.severity === 'moderate' ? 'bg-orange-50 text-orange-700' :
+                                    'bg-green-50 text-green-700'
+                                }`}>
                                 {item.severity || 'moderate'}
                               </span>
                             </td>
@@ -818,10 +813,10 @@ export default function Estimate() {
                             </td>
                             <td className="px-6 py-4 text-center">
                               {item.source_url ? (
-                                <a 
-                                  href={item.source_url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
+                                <a
+                                  href={item.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
                                   className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline text-xs font-semibold bg-blue-50 dark:bg-slate-950 px-2.5 py-1 rounded-full border border-blue-100 dark:border-slate-800 inline-flex items-center gap-1"
                                 >
                                   Web Search ↗

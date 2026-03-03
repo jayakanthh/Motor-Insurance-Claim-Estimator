@@ -63,7 +63,6 @@ async def get_providers():
     Always exposes cloud providers; actual API key can be provided by the client.
     """
     providers = [
-        {"id": "mock", "name": "Mock (Demo Mode)"},
         {"id": "openai", "name": "OpenAI GPT-4o"},
         {"id": "gemini", "name": "Gemini 1.5 Pro"},
     ]
@@ -76,7 +75,7 @@ async def analyze_claim(
     left: UploadFile = File(...),
     right: UploadFile = File(...),
     extra: List[UploadFile] = File(default=[]),
-    provider: str = Form("mock"),
+    provider: str = Form("gemini"),
     api_key: Optional[str] = Form(None),
     registration_number: Optional[str] = Form(None),
     labor_rate: float = Form(75.0)

@@ -1,9 +1,0 @@
-streamlit
-openai
-google-generativeai
-python-dotenv
-pandas
-opencv-python
-pillow
-numpy
-reportlab
