@@ -425,9 +425,7 @@ export default function Estimate() {
           <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-blue-200/55 via-indigo-100/55 to-violet-100/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
             <div className="flex items-center justify-between px-4 py-3">
               <Link to="/" className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
-                  <EqualizerMark className="h-5 w-5 text-white" />
-                </div>
+                <img src="/logo.png" alt="ClaimEX" className="h-9 w-9 rounded-full object-cover" />
                 <div className="text-lg font-semibold tracking-tight">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700">Claim</span>{' '}
                   <span className="text-gray-900 dark:text-white">ex</span>
@@ -500,10 +498,10 @@ export default function Estimate() {
                     <div className="mt-2 text-xs text-red-600">{providersError}</div>
                   )}
                   <div className={`mt-2 text-xs ${backendHealth.status === 'up'
-                      ? 'text-green-700 dark:text-green-400'
-                      : backendHealth.status === 'down'
-                        ? 'text-red-700 dark:text-red-400'
-                        : 'text-gray-600 dark:text-slate-400'
+                    ? 'text-green-700 dark:text-green-400'
+                    : backendHealth.status === 'down'
+                      ? 'text-red-700 dark:text-red-400'
+                      : 'text-gray-600 dark:text-slate-400'
                     }`}>
                     {backendHealth.status === 'up'
                       ? `API: Connected (${API_BASE_URL || window.location.origin})`
@@ -727,8 +725,8 @@ export default function Estimate() {
                               {damage?.part?.replace(/_/g, ' ') || 'Unknown Part'}
                             </span>
                             <span className={`px-2.5 py-1 text-xs font-bold rounded-full capitalize ${damage.severity === 'severe' ? 'bg-red-100 text-red-700' :
-                                damage.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
-                                  'bg-green-100 text-green-700'
+                              damage.severity === 'moderate' ? 'bg-orange-100 text-orange-700' :
+                                'bg-green-100 text-green-700'
                               }`}>
                               {damage.severity || 'moderate'}
                             </span>
@@ -802,8 +800,8 @@ export default function Estimate() {
                             </td>
                             <td className="px-6 py-4">
                               <span className={`px-2 py-1 rounded text-xs font-semibold capitalize ${item.severity === 'severe' ? 'bg-red-50 text-red-700' :
-                                  item.severity === 'moderate' ? 'bg-orange-50 text-orange-700' :
-                                    'bg-green-50 text-green-700'
+                                item.severity === 'moderate' ? 'bg-orange-50 text-orange-700' :
+                                  'bg-green-50 text-green-700'
                                 }`}>
                                 {item.severity || 'moderate'}
                               </span>
@@ -844,13 +842,4 @@ export default function Estimate() {
   );
 }
 
-function EqualizerMark(props) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M6 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M10 4v16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M14 8v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M18 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+

@@ -20,9 +20,7 @@ export default function Home() {
           <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-blue-200/55 via-indigo-100/55 to-violet-100/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
             <div className="flex items-center justify-between px-4 py-3">
               <Link to="/" className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-sm">
-                  <EqualizerMark className="h-5 w-5 text-white" />
-                </div>
+                <img src="/logo.png" alt="ClaimEX" className="h-9 w-9 rounded-full object-cover" />
                 <div className="text-lg font-semibold tracking-tight">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700">Claim</span>{' '}
                   <span className="text-gray-900 dark:text-white">ex</span>
@@ -58,7 +56,7 @@ export default function Home() {
 
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-6 pt-28 pb-12 md:pt-32 md:pb-20 grid lg:grid-cols-2 gap-12 items-center">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
@@ -72,10 +70,10 @@ export default function Home() {
           <p className="text-xl text-gray-600 dark:text-slate-300 mb-8 leading-relaxed max-w-lg">
             Upload photos of your vehicle and let our AI analyze the damage and generate a clean, itemized report instantly.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4">
-            <Link 
-              to="/estimate" 
+            <Link
+              to="/estimate"
               className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl hover:-translate-y-1 transition-all"
             >
               Get Estimation
@@ -95,7 +93,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
@@ -103,7 +101,7 @@ export default function Home() {
         >
           <div className="absolute -top-10 -right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
           <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-          
+
           <div className="relative bg-white/60 backdrop-blur-xl border border-white/50 dark:bg-slate-900/40 dark:border-slate-800 rounded-3xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500 hover:shadow-3xl">
             <div className="space-y-4">
               <div className="h-72 bg-gray-200 rounded-xl w-full overflow-hidden relative">
@@ -116,8 +114,8 @@ export default function Home() {
               </div>
               <div className="pt-4 flex justify-between items-center">
                 <div>
-                    <div className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold">Estimated Cost</div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">₹45,000.00</div>
+                  <div className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold">Estimated Cost</div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">₹45,000.00</div>
                 </div>
                 <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
                   Automated
@@ -127,14 +125,14 @@ export default function Home() {
           </div>
         </motion.div>
       </div>
-      
+
       {/* Features Grid */}
       <div id="features" className="max-w-7xl mx-auto px-6 py-20">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Claim ex?</h2>
           <p className="text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">We combine computer vision with insurance expertise to deliver a fast and transparent estimation experience.</p>
         </div>
-        
+
         <div className="grid md:grid-cols-3 gap-8">
           {[
             {
@@ -156,7 +154,7 @@ export default function Home() {
               color: "bg-purple-500"
             }
           ].map((feature, idx) => (
-            <motion.div 
+            <motion.div
               key={idx}
               whileHover={{ y: -5 }}
               className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 hover:shadow-xl transition-all"
@@ -188,7 +186,7 @@ export default function Home() {
             {
               icon: <CpuChipIcon className="h-8 w-8 text-white" />,
               title: "Pick an AI provider",
-              desc: "Run in demo mode or choose OpenAI, Gemini, or local Ollama models.",
+              desc: "Choose OpenAI GPT-4o or Google Gemini for AI-powered damage detection.",
               color: "bg-indigo-600"
             },
             {
@@ -295,13 +293,4 @@ function CheckIcon(props) {
   );
 }
 
-function EqualizerMark(props) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M6 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M10 4v16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M14 8v8" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      <path d="M18 6v12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
+
