@@ -462,10 +462,6 @@ export default function Estimate() {
             <div className="flex items-center justify-between px-4 py-3">
               <Link to="/" className="flex items-center gap-2">
                 <img src="/logo.png" alt="ClaimEX" className="h-9 w-9 rounded-full object-cover" />
-                <div className="text-lg font-semibold tracking-tight">
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-700 to-indigo-700">Claim</span>{' '}
-                  <span className="text-gray-900 dark:text-white">ex</span>
-                </div>
               </Link>
 
               <div className="hidden md:flex items-center gap-8 text-gray-700 dark:text-slate-200 font-medium">
