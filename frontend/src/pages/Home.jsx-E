@@ -14,33 +14,33 @@ export default function Home() {
   };
 
   return (
-    <div id="top" className="min-h-screen bg-gradient-to-br from-green-50 to-[#03da7c] dark:from-slate-950 dark:to-slate-900 overflow-hidden">
+    <div id="top" className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-slate-950 dark:to-slate-900 overflow-hidden">
       <div className="fixed top-0 inset-x-0 z-50 pointer-events-none">
         <div className="max-w-7xl mx-auto px-6 pt-6 pointer-events-auto">
-          <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-green-200/55 via-[#02b967]/55 to-[#03da7c]/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
+          <div className="rounded-full bg-white/20 dark:bg-slate-950/20 backdrop-blur-2xl backdrop-saturate-150 bg-gradient-to-r from-blue-200/55 via-indigo-100/55 to-violet-100/55 dark:from-slate-900/45 dark:via-slate-900/40 dark:to-slate-800/40 border border-white/55 dark:border-slate-700/50 shadow-[0_18px_40px_-26px_rgba(2,6,23,0.6)]">
             <div className="flex items-center justify-between px-4 py-3">
               <Link to="/" className="flex items-center gap-2">
                 <img src="/logo.png" alt="ClaimEX" className="h-16 w-auto object-contain ml-2 -my-3" />
               </Link>
 
               <div className="hidden md:flex items-center gap-8 text-gray-700 dark:text-slate-200 font-medium">
-                <a href="#features" className="hover:text-green-800 dark:hover:text-green-300 transition-colors">Features</a>
-                <a href="#how-it-works" className="hover:text-green-800 dark:hover:text-green-300 transition-colors">How it Works</a>
-                <a href="#support" className="hover:text-green-800 dark:hover:text-green-300 transition-colors">Contact</a>
+                <a href="#features" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">Features</a>
+                <a href="#how-it-works" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">How it Works</a>
+                <a href="#support" className="hover:text-blue-800 dark:hover:text-blue-300 transition-colors">Contact</a>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={toggleTheme}
-                  className="h-10 w-10 rounded-full bg-white/70 dark:bg-slate-900 border border-green-300/60 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
+                  className="h-10 w-10 rounded-full bg-white/70 dark:bg-slate-900 border border-blue-300/60 dark:border-slate-700 text-gray-800 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center"
                   aria-label="Toggle theme"
                 >
                   {isDark ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
                 </button>
                 <Link
                   to="/estimate"
-                  className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-green-600 text-white font-semibold shadow-sm hover:bg-green-700 transition-colors"
+                  className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-blue-600 text-white font-semibold shadow-sm hover:bg-blue-700 transition-colors"
                 >
                   Start
                 </Link>
@@ -59,7 +59,7 @@ export default function Home() {
         >
           <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
             Instant Car Damage <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-[#02b967]">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
               Estimates in Seconds
             </span>
           </h1>
@@ -70,7 +70,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Link
               to="/estimate"
-              className="flex items-center justify-center gap-2 bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-green-200 hover:bg-green-700 hover:shadow-xl hover:-translate-y-1 transition-all"
+              className="flex items-center justify-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 hover:bg-blue-700 hover:shadow-xl hover:-translate-y-1 transition-all"
             >
               Get Estimation
               <ArrowRightIcon className="h-5 w-5" />
@@ -95,14 +95,14 @@ export default function Home() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="relative"
         >
-          <div className="absolute -top-10 -right-10 w-72 h-72 bg-green-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-          <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-[#02b967] rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+          <div className="absolute -top-10 -right-10 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+          <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
 
           <div className="relative bg-white/60 backdrop-blur-xl border border-white/50 dark:bg-slate-900/40 dark:border-slate-800 rounded-3xl p-6 shadow-2xl transform rotate-2 hover:rotate-0 transition-all duration-500 hover:shadow-3xl">
             <div className="space-y-4">
               <div className="h-72 bg-gray-200 rounded-xl w-full overflow-hidden relative">
                 <img src="/sample-image.jpg" alt="Sample vehicle" className="absolute inset-0 w-full h-full object-cover" />
-                <div className="absolute top-0 left-0 w-full h-1 bg-green-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan"></div>
+                <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-scan"></div>
               </div>
               <div className="space-y-2 pt-2">
                 <div className="h-4 bg-gray-200 rounded w-3/4"></div>
@@ -113,7 +113,7 @@ export default function Home() {
                   <div className="text-xs text-gray-500 dark:text-slate-400 uppercase font-bold">Estimated Cost</div>
                   <div className="text-2xl font-bold text-gray-900 dark:text-white">₹45,000.00</div>
                 </div>
-                <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold">
+                <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-bold">
                   Automated
                 </div>
               </div>
@@ -135,13 +135,13 @@ export default function Home() {
               icon: <ClockIcon className="h-8 w-8 text-white" />,
               title: "Lightning Fast",
               desc: "Get a complete damage assessment and cost estimate in under 60 seconds.",
-              color: "bg-green-500"
+              color: "bg-blue-500"
             },
             {
               icon: <CameraIcon className="h-8 w-8 text-white" />,
               title: "Multi-Angle Analysis",
               desc: "Our AI analyzes 4+ angles to ensure no damage is missed, just like a human adjuster.",
-              color: "bg-[#02b967]"
+              color: "bg-indigo-500"
             },
             {
               icon: <ShieldCheckIcon className="h-8 w-8 text-white" />,
@@ -177,19 +177,19 @@ export default function Home() {
               icon: <CameraIcon className="h-8 w-8 text-white" />,
               title: "Upload required photos",
               desc: "Front, rear, left, and right angles; add optional close-ups for clarity.",
-              color: "bg-green-600"
+              color: "bg-blue-600"
             },
             {
               icon: <CpuChipIcon className="h-8 w-8 text-white" />,
               title: "Pick an AI provider",
               desc: "Choose OpenAI GPT-4o or Google Gemini for AI-powered damage detection.",
-              color: "bg-[#02b967]"
+              color: "bg-indigo-600"
             },
             {
               icon: <MagnifyingGlassIcon className="h-8 w-8 text-white" />,
               title: "Add registration number",
               desc: "Used to enrich make/model/year for more accurate parts matching and pricing.",
-              color: "bg-[#03da7c]"
+              color: "bg-violet-600"
             },
             {
               icon: <ShieldCheckIcon className="h-8 w-8 text-white" />,
@@ -207,7 +207,7 @@ export default function Home() {
               icon: <DocumentTextIcon className="h-8 w-8 text-white" />,
               title: "Review + export PDF",
               desc: "Get damages, totals, detailed line-items, and a downloadable report.",
-              color: "bg-green-700"
+              color: "bg-blue-700"
             }
           ].map((step, idx) => (
             <motion.div
@@ -269,7 +269,7 @@ export default function Home() {
               </a>
               <Link
                 to="/estimate"
-                className="px-6 py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors text-center"
+                className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors text-center"
               >
                 Try Estimation
               </Link>

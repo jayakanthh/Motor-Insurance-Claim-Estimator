@@ -13,3 +13,17 @@ html {
 .dark {
   color-scheme: dark;
 }
+
+@theme {
+  --color-blue-50: #e1fcf2;
+  --color-blue-100: #83f2cb;
+  --color-blue-200: #52edb5;
+  --color-blue-300: #28e5a0;
+  --color-blue-400: #0edfb1;
+  --color-blue-500: #03da7c;
+  --color-blue-600: #02b967;
+  --color-blue-700: #029452;
+  --color-blue-800: #016b3d;
+  --color-blue-900: #014728;
+  --color-blue-950: #002513;
+}
